@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"] # "setuptools-scm"
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyxdftools"
+version = "0.0.1"
+authors = [
+   {name="Jamie Forth", email="j.forth@gold.ac.uk"},
+]
+description = "Simplified XDF data file processing."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "BSD-3-Clause"}
+
+dependencies = [
+    "mne",
+    "pyxdf",
+    "pandas"
+]
+# dynamic = ["version"]
+
+# [project.urls]
+# "Homepage" = "https://github.com/pypa/sampleproject"
+# "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
