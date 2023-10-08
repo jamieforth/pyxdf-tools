@@ -1,7 +1,6 @@
 """Thin wrapper for raw XDF data."""
 
 import pyxdf
-import textwrap
 
 
 class RawXdf:
@@ -128,11 +127,8 @@ class RawXdf:
                 if isinstance(data, list) and len(data) == 1:
                     data = data[0]
             else:
-                print(textwrap.fill(textwrap.dedent(
-                    f"""
-                    Stream {self.__get_stream_id(stream)} does not contain key:
-                    {key}.
-                    """)))
+                stream_id = self.__get_stream_id(stream)
+                print(f'Stream {stream_id} does not contain key: {key}.')
                 return None
         if keep_final_key:
             data = {data_path[-1]: data}
@@ -149,11 +145,8 @@ class RawXdf:
         try:
             assert len(valid_ids) == len(stream_ids)
         except AssertionError:
-            raise KeyError(textwrap.fill(textwrap.dedent(
-                f"""
-                Invalid stream IDs:
-                {list(valid_ids.symmetric_difference(stream_ids))}
-                """)))
+            invalid_ids = list(valid_ids.symmetric_difference(stream_ids))
+            raise KeyError(f'Invalid stream IDs: {invalid_ids}')
 
     def __pop_singleton_lists(self, data):
         # Copy dictionary to avoid modifying in place.
