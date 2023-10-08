@@ -11,7 +11,8 @@ class AntXdfData (XdfData):
     def channel_metadata(self, *stream_ids, force_id_idx=False):
         """Return a DataFrame containing channel metadata.
 
-        Get data for stream_ids or default all loaded streams.
+        Get data for stream_ids or default all loaded streams. Multiple
+        streams always returns a hierarchical (multiindex) DataFrame.
         """
         df = super(AntXdfData, self).channel_metadata(
             *stream_ids,

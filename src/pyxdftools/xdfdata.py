@@ -128,15 +128,17 @@ class XdfData (RawXdf):
     def channel_metadata(self, *stream_ids, force_id_idx=False):
         """Return a DataFrame containing channel metadata.
 
-        Get data for stream_ids or default all loaded streams.
+        Get data for stream_ids or default all loaded streams. Multiple
+        streams always returns a hierarchical (multiindex) DataFrame.
         """
         ch_metadata = self.collect_stream_data(
             *stream_ids,
             data_path=['info', 'desc', 'channels', 'channel'],
             pop_singleton_lists=True)
         ch_metadata, empty = self.__remove_empty_streams(ch_metadata)
-        print(f"""No channel metadata for streams: {' '.join(str(i)
-        for i in sorted(list(empty.keys())))}""")
+        if empty:
+            print(f"""No channel metadata for streams: {' '.join(str(i)
+            for i in sorted(list(empty.keys())))}""")
         if not ch_metadata:
             print('No channel metadata found!')
             return None
@@ -145,35 +147,35 @@ class XdfData (RawXdf):
                                       force_id_idx=force_id_idx)
         return df
 
-    def channel_names(self, *stream_ids):
-        """Get all channel names."""
-        ch_names = self.channel_metadata(
-            *stream_ids,
-            force_id_idx=True).loc[:, (slice(None), 'label')]
-        return ch_names
+    def channel_metadata_subset(self, *stream_ids, types,
+                                force_id_idx=False):
+        """Return DataFrame subset of channel metadata.
 
-    def channel_types(self, *stream_ids):
-        """Get all channel types."""
-        types = self.channel_metadata(
-            *stream_ids,
-            force_id_idx=True).loc[:, (slice(None), 'type')]
-        return types
-
-    def channel_units(self, *stream_ids):
-        """Get all channel units."""
-        units = self.channel_metadata(
-            *stream_ids,
-            force_id_idx=True).loc[:, (slice(None), 'unit')]
-        return units
+        Types is a string or list of string to select returned metadata
+        types.
+        """
+        ch_metadata = self.channel_metadata(*stream_ids,
+                                            force_id_idx=force_id_idx)
+        if ch_metadata is not None:
+            if not isinstance(types, list):
+                types = [types]
+                if ch_metadata.columns.nlevels == 1:
+                    ch_metadata = ch_metadata.loc[:, types]
+                else:
+                    ch_metadata = ch_metadata.loc[:, (slice(None), types)]
+        return ch_metadata
 
     def channel_scaling(self, *stream_ids):
         """Return a DataFrame of channel scaling values."""
-        units = self.channel_units(*stream_ids)
-        scaling = units.apply(
-            lambda units: [1e-6 if u in self.__microvolts else 1
-                           for u in units])
-        scaling.rename(columns={'unit': 'scale'}, inplace=True)
-        return scaling
+        units = self.channel_metadata_subset(*stream_ids,
+                                             types='unit',
+                                             force_id_idx=True)
+        if units is not None:
+            scaling = units.apply(
+                lambda units: [1e-6 if u in self.__microvolts else 1
+                               for u in units])
+            scaling.rename(columns={'unit': 'scale'}, inplace=True)
+            return scaling
 
     def time_series(self, *stream_ids, scale_data=True,
                     set_channel_names=True):
@@ -193,12 +195,14 @@ class XdfData (RawXdf):
 
         if scale_data:
             scalings = self.channel_scaling(*stream_ids)
-            data = self.__scale_data(data, scalings)
+            if scalings is not None:
+                data = self.__scale_data(data, scalings)
 
         col_names = None
         if set_channel_names:
-            col_names = self.channel_names(*stream_ids)
-
+            col_names = self.channel_metadata_subset(*stream_ids,
+                                                     types='label',
+                                                     force_id_idx=True)
         ts = self.__merge_stream_data(data,
                                       'sample',
                                       col_index_name='channel',
@@ -301,6 +305,7 @@ class XdfData (RawXdf):
 
     def __scale_data(self, data, scalings):
         data = {stream_id: d * scalings[stream_id].to_numpy().T
+                if stream_id in scalings.columns else d
                 for stream_id, d in data.items()}
         return data
 
@@ -309,23 +314,20 @@ class XdfData (RawXdf):
         # For single streams return a non-hierarchical DataFrame unless
         # force_id_idx=True.
         if len(data) == 1 and not force_id_idx:
+            stream_id = list(data.keys())[0]
             data = list(data.values())[0]
-            data = self.__to_df(data, index_name, col_index_name,
+            data = self.__to_df(stream_id, data, index_name, col_index_name,
                                 col_names)
             return data
 
         # Otherwise returns a hierarchical (MultiIndex) DataFrame with a
         # two-dimensional column index. Stream ID is the first dimension
         # of the multi-level column index.
-        if col_names is not None:
-            data = {stream_id: self.__to_df(d, index_name,
-                                            col_index_name,
-                                            col_names[stream_id])
-                    for stream_id, d, in data.items()}
-        else:
-            data = {stream_id: self.__to_df(d, index_name,
-                                            col_index_name)
-                    for stream_id, d, in data.items()}
+        data = {stream_id: self.__to_df(stream_id, d,
+                                        index_name,
+                                        col_index_name,
+                                        col_names)
+                for stream_id, d, in data.items()}
         data = pd.concat(data, axis='columns')
         # Set stream_id as the first column index level.
         data.columns.set_names('stream_id', level=0, inplace=True)
@@ -342,11 +344,12 @@ class XdfData (RawXdf):
                 empty[stream_id] = d
         return streams, empty
 
-    def __to_df(self, data, index_name, col_index_name, col_names=None):
+    def __to_df(self, stream_id, data, index_name, col_index_name,
+                col_names=None):
         data = pd.DataFrame(data)
         data.index.set_names(index_name, inplace=True)
         if col_index_name:
             data.columns.set_names(col_index_name, inplace=True)
-        if col_names is not None:
+        if col_names is not None and stream_id in col_names.columns:
             data.rename(columns=col_names.iloc[:, 0], inplace=True)
         return data
