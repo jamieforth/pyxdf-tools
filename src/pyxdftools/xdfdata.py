@@ -255,7 +255,9 @@ class XdfData (RawXdf):
         if time_stamps:
             times = self.time_stamps(*stream_ids)
             ts = ts.join(times)
-            ts.sort_index(axis='columns', inplace=True)
+            if ts.columns.nlevels > 1:
+                ts.sort_index(axis='columns', level='stream_id',
+                              sort_remaining=False, inplace=True)
         return ts
 
     def clock_offsets(self, *stream_ids):
@@ -345,7 +347,8 @@ class XdfData (RawXdf):
         data = pd.concat(data, axis='columns')
         # Set stream_id as the first column index level.
         data.columns.set_names('stream_id', level=0, inplace=True)
-        data.sort_index(inplace=True, axis='columns')
+        data.sort_index(axis='columns', level='stream_id',
+                        sort_remaining=False, inplace=True)
         return data
 
     def __remove_empty_streams(self, data):
@@ -370,5 +373,6 @@ class XdfData (RawXdf):
         if col_index_name:
             data.columns.set_names(col_index_name, inplace=True)
         if col_names is not None and stream_id in col_names.columns:
-            data.rename(columns=col_names.iloc[:, 0], inplace=True)
+            data.rename(columns=col_names.loc[:, stream_id]['label'],
+                        inplace=True)
         return data
