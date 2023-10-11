@@ -67,8 +67,8 @@ class RawXdf:
 
     def loaded_stream_ids(self):
         """Get IDs for all loaded streams."""
-        return [self.__get_stream_id(stream)
-                for stream in self.__streams]
+        return sorted([self.__get_stream_id(stream)
+                       for stream in self.__streams])
 
     def get_streams(self, *stream_ids):
         """Return raw stream data.
