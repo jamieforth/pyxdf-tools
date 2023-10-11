@@ -1,16 +1,16 @@
 """Main XdfData class for working with XDF data."""
 
 
+import mne
 import pandas as pd
 import pyxdf
-import mne
 
-from .rawxdf import RawXdf
 from .errors import MetadataParseError
+from .rawxdf import RawXdf
 
 
 class XdfData (RawXdf):
-    """Helper class for working with XDF data files.
+    """Helper class for with XDF data files.
 
     Provides a pandas-based layer of abstraction over raw XDF data to
     simplify data processing.
@@ -43,8 +43,10 @@ class XdfData (RawXdf):
 
         Streams can be optionally filtered using key-value matching
         properties. Available streams are selected based on matching
-        property values and/or lists of property values (e.g. type=EEG
-        or stream_id=[1, 2].
+        property values and/or lists of property values (e.g. type='eeg'
+        or stream_id=[1, 2]). Property values are matched against the
+        raw XDF metadata - i.e. before metadata has been loaded and
+        optionally pre-processed.
         """
         streams = pd.DataFrame(super(XdfData, self).resolve_streams())
 
@@ -96,7 +98,7 @@ class XdfData (RawXdf):
         super(XdfData, self).load(select_streams=stream_ids, **xdf_kwargs)
 
         # Parse stream metadata.
-        metadata = self.__get_metadata()
+        metadata = self.parse_metadata()
 
         # Initialise class attributes.
         self.__metadata = metadata
@@ -113,6 +115,19 @@ class XdfData (RawXdf):
         header = pd.DataFrame(self.get_header())
         header['datetime'] = pd.to_datetime(header['datetime'])
         return header
+
+    def parse_metadata(self):
+        """Return a DataFrame for all loaded streams.
+
+        Called automatically when XDF data is loaded. This method can be
+        implemented by a subclass for any custom parsing requirements.
+        """
+        streams = self.get_streams()
+        metadata = [self.__parse_stream_metadata(stream) for stream in streams]
+        metadata = pd.DataFrame(metadata)
+        metadata.sort_index(inplace=True)
+        metadata.index.name = 'stream_id'
+        return metadata
 
     def metadata(self, *stream_ids):
         """Return stream metadata as a DataFrame.
@@ -135,6 +150,7 @@ class XdfData (RawXdf):
             *stream_ids,
             data_path=['info', 'desc', 'channels', 'channel'],
             pop_singleton_lists=True)
+        # Check that data streams have valid channel metadata.
         ch_metadata, empty = self.__remove_empty_streams(ch_metadata)
         if empty:
             print(f"""No channel metadata for streams: {' '.join(str(i)
@@ -273,15 +289,8 @@ class XdfData (RawXdf):
         raw = mne.io.RawArray(ts, info)
         return raw
 
-    # Private methods.
-    def __get_metadata(self):
-        streams = self.get_streams()
-        metadata = [self.__parse_stream_metadata(stream) for stream in streams]
-        metadata = pd.DataFrame(metadata)
-        metadata.sort_index(inplace=True)
-        metadata.index.name = 'stream_id'
-        return metadata
 
+    # Private methods.
     def __parse_stream_metadata(self, stream):
         # The XDF metadata scheme is extensible so this can not handle
         # every possibility. It tries to get all standard info

@@ -8,6 +8,23 @@ class AntXdfData (XdfData):
     simplify data processing.
     """
 
+    def parse_metadata(self):
+        """Rename AntNeuro stream types when parsing metadata."""
+        df = super(AntXdfData, self).parse_metadata()
+        df = self.rename_stream_types(df, 'type')
+        return df
+
+    def rename_stream_types(self, df, selection):
+        """Rename stream types."""
+        df.loc[:,
+               selection
+               ] = df.loc[:,
+                          selection
+                          ].replace({
+                              'EEG': 'eeg',
+                              })
+        return df
+
     def channel_metadata(self, *stream_ids, force_id_idx=False):
         """Return a DataFrame containing channel metadata.
 
@@ -26,10 +43,10 @@ class AntXdfData (XdfData):
 
         if df.columns.nlevels == 1:
             df = self.rename_channels(df, 'label')
-            df = self.rename_types(df, 'type')
+            df = self.rename_channel_types(df, 'type')
         else:
             df = self.rename_channels(df, (slice(None), 'label'))
-            df = self.rename_types(df, (slice(None), 'type'))
+            df = self.rename_channel_types(df, (slice(None), 'type'))
 
         return df
 
@@ -79,7 +96,7 @@ class AntXdfData (XdfData):
                           })
         return df
 
-    def rename_types(self, df, selection):
+    def rename_channel_types(self, df, selection):
         """Rename channel types."""
         df.loc[:,
                selection
