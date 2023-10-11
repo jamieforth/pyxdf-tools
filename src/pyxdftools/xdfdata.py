@@ -360,7 +360,12 @@ class XdfData (RawXdf):
 
     def __to_df(self, stream_id, data, index_name, col_index_name,
                 col_names=None):
+        # Column names must be a multi-indexed column DataFrame where
+        # level 0=stream_id and level 1=labels. Each row maps a
+        # channel index to a label.
         data = pd.DataFrame(data)
+        if data.empty:
+            return None
         data.index.set_names(index_name, inplace=True)
         if col_index_name:
             data.columns.set_names(col_index_name, inplace=True)
