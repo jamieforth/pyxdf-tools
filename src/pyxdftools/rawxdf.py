@@ -87,7 +87,7 @@ class RawXdf:
 
     def collect_stream_data(self, *stream_ids, data_path=None,
                             pop_singleton_lists=False,
-                            keep_final_key=False):
+                            as_key=False):
         """Extract nested stream data for multiple streams.
 
         Returns a dictionary {stream_id: data} with number of items
@@ -97,7 +97,7 @@ class RawXdf:
         streams = self.get_streams(*stream_ids)
         data = {self.__get_stream_id(stream):
                 self.__get_stream_data(stream, data_path,
-                                       keep_final_key=keep_final_key)
+                                       as_key=as_key)
                 for stream in streams}
         if pop_singleton_lists:
             data = self.__pop_singleton_lists(data)
@@ -118,7 +118,7 @@ class RawXdf:
                         self.collect_leaf_data(item[0], leaf_data)
         return leaf_data
 
-    def __get_stream_data(self, stream, data_path, *, keep_final_key=False):
+    def __get_stream_data(self, stream, data_path, *, as_key=False):
         """Extract nested stream data at data_path."""
         data = stream
         for key in data_path:
@@ -130,8 +130,8 @@ class RawXdf:
                 stream_id = self.__get_stream_id(stream)
                 print(f'Stream {stream_id} does not contain key: {key}.')
                 return None
-        if keep_final_key:
-            data = {data_path[-1]: data}
+        if as_key:
+            data = {as_key: data}
         return data
 
     def __get_stream_id(self, stream):

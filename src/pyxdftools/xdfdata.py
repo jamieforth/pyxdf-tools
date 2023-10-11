@@ -146,6 +146,7 @@ class XdfData (RawXdf):
         Get data for stream_ids or default all loaded streams. Multiple
         streams always returns a hierarchical (multiindex) DataFrame.
         """
+        # Extract channel metadata for data streams.
         ch_metadata = self.collect_stream_data(
             *stream_ids,
             data_path=['info', 'desc', 'channels', 'channel'],
@@ -232,9 +233,8 @@ class XdfData (RawXdf):
         """
         ts = self.collect_stream_data(*stream_ids,
                                       data_path=['time_stamps'],
-                                      keep_final_key=True)
+                                      as_key='time_stamp')
         ts = self.__merge_stream_data(ts, 'sample')
-        ts.rename(columns={'time_stamps': 'time_stamp'}, inplace=True)
         return ts
 
     def data(self, *stream_ids, scale_data=True,
