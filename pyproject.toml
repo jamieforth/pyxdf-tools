@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"] # "setuptools-scm"
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,8 +18,7 @@ dependencies = [
     "pyxdf",
     "pandas"
 ]
-# dynamic = ["version"]
 
-# [project.urls]
-# "Homepage" = "https://github.com/pypa/sampleproject"
-# "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+[project.urls]
+"Homepage" = "https://github.com/jamieforth/pyxdf-tools"
+"Bug Tracker" = "https://github.com/jamieforth/pyxdf-tools/issues"
