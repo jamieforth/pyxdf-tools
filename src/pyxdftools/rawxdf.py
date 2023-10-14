@@ -2,6 +2,8 @@
 
 import pyxdf
 
+from .errors import DataStreamLoadError
+
 
 class RawXdf:
     """Thin wrapper for raw XDF data.
@@ -36,9 +38,19 @@ class RawXdf:
         """Resolve streams in the current file."""
         return pyxdf.resolve_streams(self.filename)
 
+    def available_stream_ids(self):
+        """Return a list of available stream IDs."""
+        streams = RawXdf.resolve_streams(self)
+        stream_ids = sorted([stream['stream_id'] for stream in streams])
+        print(stream_ids)
+        return stream_ids
+
     def load(self, **kwargs):
-        """Load XDF data using pyxdf passing all kwagrs."""
-        streams, header = pyxdf.load_xdf(self.filename, **kwargs)
+        """Load XDF data using pyxdf passing all kwargs."""
+        try:
+            streams, header = pyxdf.load_xdf(self.filename, **kwargs)
+        except Exception:
+            streams, header = self.__failsafe_load(**kwargs)
 
         # Initialise class attributes.
         self.__loaded = True
@@ -46,11 +58,31 @@ class RawXdf:
         self.__streams = streams
         return self
 
+    def __failsafe_load(self, **kwargs):
+        if 'select_streams' in kwargs:
+            stream_ids = kwargs.pop('select_streams')
+        else:
+            stream_ids = self.available_stream_ids()
+
+        # Test loading each stream.
+        loadable_streams = []
+        for i in stream_ids:
+            try:
+                _, _ = pyxdf.load_xdf(self.filename, select_streams=[i],
+                                      **kwargs)
+                loadable_streams.append(i)
+            except Exception as exc:
+                exc = DataStreamLoadError(i, exc)
+                print(exc)
+        return pyxdf.load_xdf(self.filename, select_streams=loadable_streams,
+                              **kwargs)
+
     def loaded(self):
         """Test if a file has been loaded."""
         return self.__loaded
 
     def assert_loaded(self):
+        """Assert that data is loaded before continuing."""
         if not self.loaded():
             raise UserWarning(
                 'No streams loaded, call load_streams() first.')
