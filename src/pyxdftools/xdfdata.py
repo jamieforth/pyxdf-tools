@@ -175,11 +175,20 @@ class XdfData (RawXdf):
         if ch_metadata is not None:
             if not isinstance(types, list):
                 types = [types]
-                if ch_metadata.columns.nlevels == 1:
-                    ch_metadata = ch_metadata.loc[:, types]
+                if ch_metadata.columns.nlevels > 1:
+                    types = list(set(types).intersection(
+                        ch_metadata.columns.get_level_values(1)))
+                    if types:
+                        return ch_metadata.loc[:, (slice(None), types)]
+                    else:
+                        return None
                 else:
-                    ch_metadata = ch_metadata.loc[:, (slice(None), types)]
-        return ch_metadata
+                    types = list(set(types).intersection(
+                        ch_metadata.columns))
+                    if types:
+                        return ch_metadata.loc[:, types]
+                    else:
+                        return None
 
     def channel_scaling(self, *stream_ids):
         """Return a DataFrame of channel scaling values."""
