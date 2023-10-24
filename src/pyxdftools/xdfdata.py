@@ -35,7 +35,7 @@ class XdfData (RawXdf):
 
     def __init__(self, filename, verbose=False):
         """Initialise raw XDF."""
-        super(XdfData, self).__init__(filename, verbose)
+        super().__init__(filename, verbose)
 
     def resolve_streams(self, **match_props):
         """Return a DataFrame containing available streams.
@@ -47,7 +47,7 @@ class XdfData (RawXdf):
         raw XDF metadata - i.e. before metadata has been loaded and
         optionally pre-processed.
         """
-        streams = pd.DataFrame(super(XdfData, self).resolve_streams())
+        streams = pd.DataFrame(super().resolve_streams())
 
         # Subset streams based on matching properties.
         if len(match_props) > 0:
@@ -94,7 +94,7 @@ class XdfData (RawXdf):
             match_props['stream_id'] = list(stream_ids)
         # Load matching streams from the XDF file.
         stream_ids = list(self.resolve_streams(**match_props).index)
-        super(XdfData, self).load(select_streams=stream_ids, **xdf_kwargs)
+        super().load(select_streams=stream_ids, **xdf_kwargs)
 
         # Parse stream metadata.
         metadata = self.parse_metadata()
