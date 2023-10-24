@@ -36,7 +36,7 @@ class RawXdf:
 
     def resolve_streams(self):
         """Resolve streams in the current file."""
-        return pyxdf.resolve_streams(self.filename)
+        return pyxdf.resolve_streams(str(self.filename))
 
     def available_stream_ids(self):
         """Return a list of available stream IDs."""
