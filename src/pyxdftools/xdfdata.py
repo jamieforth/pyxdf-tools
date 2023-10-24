@@ -311,6 +311,10 @@ class XdfData (RawXdf):
             desc = info.pop('desc')[0]
             metadata = pd.DataFrame(info)
             if desc is not None:
+                # Remove channel metadata to be handled separately.
+                if 'channels' in desc:
+                    desc = desc.copy()
+                    desc.pop('channels')
                 desc = pd.DataFrame(self.collect_leaf_data(desc))
                 metadata = metadata.join(desc)
             footer = stream['footer']['info']
