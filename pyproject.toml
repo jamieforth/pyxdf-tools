@@ -16,7 +16,7 @@ license = {text = "BSD-3-Clause"}
 dependencies = [
     "mne",
     "pyxdf",
-    "pandas"
+    "pandas[performance]"
 ]
 
 [project.urls]
