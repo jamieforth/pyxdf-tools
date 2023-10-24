@@ -5,6 +5,7 @@ import mne
 import pandas as pd
 import pyxdf
 
+from .constants import data_channel_types, microvolts
 from .errors import MetadataParseError
 from .rawxdf import RawXdf
 
@@ -31,13 +32,6 @@ class XdfData (RawXdf):
         'last_timestamp': float,
         'sample_count': int,
     }
-
-    # https://mne.tools/stable/glossary.html#term-data-channels
-    __data_channel_types = ['mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
-                            'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude',
-                            'fnirs_fd_phase', 'fnirs_od'] + ['data']
-
-    __microvolts = ('microvolt', 'microvolts', 'uV', 'µV', 'μV')
 
     def __init__(self, filename, verbose=False):
         """Initialise raw XDF."""
@@ -194,7 +188,7 @@ class XdfData (RawXdf):
                                              force_id_idx=True)
         if units is not None:
             scaling = units.apply(
-                lambda units: [1e-6 if u in self.__microvolts else 1
+                lambda units: [1e-6 if u in microvolts else 1
                                for u in units])
             scaling.rename(columns={'unit': 'scale'}, inplace=True)
             return scaling
