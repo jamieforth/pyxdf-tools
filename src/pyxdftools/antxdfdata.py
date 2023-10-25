@@ -105,6 +105,7 @@ class AntXdfData (XdfData):
                           ].replace({
                               'ref': 'eeg',
                               'aux': 'misc',
+                              'bip': 'misc',
                               'trigger': 'misc',
                               'counter': 'misc'})
         return df
