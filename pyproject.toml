@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Simplified XDF data file processing."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "BSD-3-Clause"}
 
 dependencies = [
