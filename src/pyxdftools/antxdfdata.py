@@ -107,5 +107,7 @@ class AntXdfData (XdfData):
                               'aux': 'misc',
                               'bip': 'misc',
                               'trigger': 'misc',
-                              'counter': 'misc'})
+                              'counter': 'misc',
+                              'trg': 'stim'
+                          })
         return df
