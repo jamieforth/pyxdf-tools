@@ -331,7 +331,10 @@ class XdfData (RawXdf):
             raise MetadataParseError(info['stream_id'])
 
     def __scale_data(self, data, scalings):
-        data = {stream_id: d * scalings[stream_id].to_numpy().T
+        data = {stream_id: d * scalings[stream_id].to_numpy().T[
+            :,
+            0:d.shape[1]        # Handle streams with fewer channels.
+        ]
                 if stream_id in scalings.columns else d
                 for stream_id, d in data.items()}
         return data
@@ -384,6 +387,8 @@ class XdfData (RawXdf):
         if col_index_name:
             data.columns.set_names(col_index_name, inplace=True)
         if col_names is not None and stream_id in col_names.columns:
-            data.rename(columns=col_names.loc[:, stream_id]['label'],
-                        inplace=True)
+            data.rename(
+                columns=col_names.loc[:, (stream_id, 'label')],
+                inplace=True
+            )
         return data
