@@ -47,6 +47,8 @@ class RawXdf:
 
     def load(self, **kwargs):
         """Load XDF data using pyxdf passing all kwargs."""
+        if self.loaded():
+            raise UserWarning('Streams already loaded.')
         try:
             streams, header = pyxdf.load_xdf(self.filename, **kwargs)
         except Exception:

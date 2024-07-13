@@ -84,6 +84,8 @@ class XdfData (RawXdf):
         function. All other kwargs are assumed to be stream properties
         and will be passed to resolve_streams().
         """
+        if self.loaded():
+            raise UserWarning('Streams already loaded.')
         # Separate kwargs.
         xdf_kwargs = {k: kwargs[k] for k in
                       kwargs.keys() & pyxdf.load_xdf.__kwdefaults__.keys()}
