@@ -112,7 +112,7 @@ class RawXdf:
         """
         self.assert_loaded()
         # If no stream_ids are provided return all loaded streams.
-        if not stream_ids:
+        if not stream_ids or set(self.loaded_stream_ids()) == set(stream_ids):
             return self.__streams
         self.__check_stream_ids(*stream_ids)
         return [stream for stream_id in stream_ids
