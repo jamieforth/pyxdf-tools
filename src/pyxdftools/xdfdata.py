@@ -2,10 +2,11 @@
 
 
 import mne
+import numpy as np
 import pandas as pd
 import pyxdf
 
-from .constants import data_channel_types, microvolts
+from .constants import microvolts
 from .errors import MetadataParseError
 from .rawxdf import RawXdf
 
@@ -20,17 +21,18 @@ class XdfData (RawXdf):
     # DataFrame containing metadata for all loaded streams.
     __metadata = None
 
+    # Data types according to XDF specification.
     __metadata_types = {
-        'channel_count': int,
-        'nominal_srate': float,
-        'v4data_port': int,
-        'v4service_port': int,
-        'v6data_port': int,
-        'v6service_port': int,
-        'effective_srate': float,
-        'first_timestamp': float,
-        'last_timestamp': float,
-        'sample_count': int,
+        'channel_count': np.int16,
+        'nominal_srate': np.float64,
+        'v4data_port': np.int16,
+        'v4service_port': np.int16,
+        'v6data_port': np.int16,
+        'v6service_port': np.int16,
+        'effective_srate': np.float64,
+        'first_timestamp': np.float64,
+        'last_timestamp': np.float64,
+        'sample_count': np.int64,
     }
 
     def __init__(self, filename, verbose=False):
