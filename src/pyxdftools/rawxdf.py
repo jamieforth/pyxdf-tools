@@ -37,6 +37,13 @@ class RawXdf:
         """Resolve streams in the current file."""
         return pyxdf.resolve_streams(str(self.filename))
 
+    def match_streaminfos(self, *parameters):
+        """Match streams given stream_ids or property values.
+
+        See pyxdf.match_streaminfos for matching options.
+        """
+        return pyxdf.match_streaminfos(self.resolve_streams(), parameters)
+
     def available_stream_ids(self):
         """Return a list of available stream IDs."""
         streams = RawXdf.resolve_streams(self)
