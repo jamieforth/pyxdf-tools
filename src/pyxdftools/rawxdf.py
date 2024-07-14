@@ -1,5 +1,6 @@
 """Thin wrapper for raw XDF data."""
 
+import numpy as np
 import pyxdf
 
 from .errors import DataStreamLoadError
@@ -50,14 +51,28 @@ class RawXdf:
         stream_ids = sorted([stream['stream_id'] for stream in streams])
         return stream_ids
 
-    def load(self, **kwargs):
+    def load(self, *select_streams, **kwargs):
         """Load XDF data using pyxdf passing all kwargs."""
         if self.loaded():
             raise UserWarning('Streams already loaded.')
+        kwargs['verbose'] = self.verbose
+        if not select_streams:
+            select_streams = None
         try:
-            streams, header = pyxdf.load_xdf(self.filename, **kwargs)
-        except Exception:
-            streams, header = self._failsafe_load(**kwargs)
+            streams, header = pyxdf.load_xdf(
+                self.filename,
+                select_streams,
+                **kwargs,
+            )
+        except np.linalg.LinAlgError:
+            loadable_streams = self._find_loadable_streams(
+                select_streams, **kwargs)
+            if loadable_streams:
+                streams, header = pyxdf.load_xdf(
+                    self.filename, loadable_streams, **kwargs)
+            else:
+                print('No loadable streams!')
+                return self
 
         # Initialise class attributes.
         self._loaded = True
@@ -65,24 +80,24 @@ class RawXdf:
         self._streams = streams
         return self
 
-    def _failsafe_load(self, **kwargs):
-        if 'select_streams' in kwargs:
-            stream_ids = kwargs.pop('select_streams')
-        else:
-            stream_ids = self.available_stream_ids()
+    def _find_loadable_streams(self, select_streams, **kwargs):
+        if select_streams is None:
+            select_streams = self.available_stream_ids()
+        elif all([isinstance(elem, int) for elem in select_streams]):
+            pass
+        elif all([isinstance(elem, dict) for elem in select_streams]):
+            select_streams = self.match_streaminfos(*select_streams)
 
         # Test loading each stream.
         loadable_streams = []
-        for i in stream_ids:
+        for i in select_streams:
             try:
-                _, _ = pyxdf.load_xdf(self.filename, select_streams=[i],
-                                      **kwargs)
+                _, _ = pyxdf.load_xdf(self.filename, i, **kwargs)
                 loadable_streams.append(i)
             except Exception as exc:
                 exc = DataStreamLoadError(i, exc)
                 print(exc)
-        return pyxdf.load_xdf(self.filename, select_streams=loadable_streams,
-                              **kwargs)
+        return loadable_streams
 
     def loaded(self):
         """Test if a file has been loaded."""
