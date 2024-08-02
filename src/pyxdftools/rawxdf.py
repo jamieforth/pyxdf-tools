@@ -66,16 +66,15 @@ class RawXdf(BaseXdf):
         return self._loaded
 
     @property
-    def num_loaded_streams(self):
-        """Return the number of streams currently loaded."""
-        self._assert_loaded()
-        return len(self._streams)
-
-    @property
+    @XdfDecorators.loaded
     def loaded_stream_ids(self):
         """Get IDs for all loaded streams."""
-        self._assert_loaded()
         return self._loaded_stream_ids
+
+    @property
+    def num_loaded_streams(self):
+        """Return the number of streams currently loaded."""
+        return len(self.loaded_stream_ids)
 
     # Public methods.
 
