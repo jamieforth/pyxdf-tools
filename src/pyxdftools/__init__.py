@@ -3,5 +3,4 @@
 
 from .basexdf import BaseXdf
 from .rawxdf import RawXdf
-from .xdfdata import XdfData
-from .antxdfdata import AntXdfData
+from .xdf import Xdf
