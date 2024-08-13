@@ -70,7 +70,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, cols=[], with_source_id=False):
+    def channel_metadata(self, *stream_ids, cols=[], with_stream_id=False):
         """Return channel metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -78,20 +78,20 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         if self._channel_metadata:
             return self._get_stream_data(
                 *stream_ids,
                 data=self._channel_metadata,
                 cols=cols,
-                with_source_id=with_source_id,
+                with_stream_id=with_stream_id,
             )
         else:
             return None
 
     @XdfDecorators.loaded
-    def clock_times(self, *stream_ids, with_source_id=False):
+    def clock_times(self, *stream_ids, with_stream_id=False):
         """Return clock times as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -99,16 +99,16 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_times,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, cols=[], with_source_id=False):
+    def clock_offsets(self, *stream_ids, cols=[], with_stream_id=False):
         """Return clock offset data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -116,17 +116,17 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_offsets,
             cols=cols,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, cols=[], with_source_id=False):
+    def time_series(self, *stream_ids, cols=[], with_stream_id=False):
         """Return stream time-series data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -134,17 +134,17 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._time_series,
             cols=cols,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_stamps(self, *stream_ids, with_source_id=False):
+    def time_stamps(self, *stream_ids, with_stream_id=False):
         """Return stream time-stamps as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -152,19 +152,19 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._time_stamps,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     def channel_scalings(self, *stream_ids, channel_scale_field):
         """Return a dictionary of DataFrames with channel scaling values."""
         stream_units = self.channel_metadata(*stream_ids,
                                              cols=channel_scale_field,
-                                             with_source_id=True)
+                                             with_stream_id=True)
         if stream_units is not None:
             scaling = {stream_id: ch_units.apply(
                 lambda units: [1e-6 if u in microvolts else np.nan
@@ -172,7 +172,7 @@ class Xdf(RawXdf):
                        for stream_id, ch_units in stream_units.items()}
             return scaling
 
-    def data(self, *stream_ids, cols=[], with_source_id=False):
+    def data(self, *stream_ids, cols=[], with_stream_id=False):
         """Return stream time-series and time-stamps as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -180,16 +180,16 @@ class Xdf(RawXdf):
         Multiple streams are returned as a dictionary {stream_id:
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
-        with_source_id=True.
+        with_stream_id=True.
         """
         time_series = self.time_series(*stream_ids,
                                        cols=cols,
-                                       with_source_id=True)
+                                       with_stream_id=True)
         times = self.time_stamps(*stream_ids,
-                                 with_source_id=True)
+                                 with_stream_id=True)
         ts = {stream_id: ts.join(times[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
-        return self.single_or_multi_stream_data(ts, with_source_id)
+        return self.single_or_multi_stream_data(ts, with_stream_id)
 
     # Non public methods.
 
@@ -303,7 +303,7 @@ class Xdf(RawXdf):
 
         if channel_name_field:
             ch_labels = self.channel_metadata(cols=channel_name_field,
-                                              with_source_id=True)
+                                              with_stream_id=True)
             if ch_labels:
                 data = {stream_id: ts.rename(
                     columns=ch_labels[stream_id].loc[:, channel_name_field])
@@ -330,10 +330,10 @@ class Xdf(RawXdf):
         return data
 
     def _get_stream_data(self, *stream_ids, data, cols=[],
-                         with_source_id=False):
+                         with_stream_id=False):
         if isinstance(data, dict):
             data = super()._get_stream_data(*stream_ids, data=data,
-                                            with_source_id=with_source_id)
+                                            with_stream_id=with_stream_id)
         elif isinstance(data, pd.DataFrame):
             if stream_ids and set(self.loaded_stream_ids) != set(stream_ids):
                 data = data.loc[list(stream_ids), :]
@@ -356,7 +356,7 @@ class Xdf(RawXdf):
         return data
 
     # def _get_stream_data_old(self, *stream_ids, data, cols=[],
-    #                          with_source_id=False):
+    #                          with_stream_id=False):
     #     if (
     #             not cols
     #             and (
@@ -417,10 +417,10 @@ class Xdf(RawXdf):
         return data
 
     # def _merge_stream_data(self, data, index_name, *, col_index_name=None,
-    #                        col_names=None, with_source_id=False):
+    #                        col_names=None, with_stream_id=False):
     #     # For single streams return a non-hierarchical DataFrame unless
-    #     # with_source_id=True.
-    #     if len(data) == 1 and not with_source_id:
+    #     # with_stream_id=True.
+    #     if len(data) == 1 and not with_stream_id:
     #         stream_id = list(data.keys())[0]
     #         data = list(data.values())[0]
     #         data = self._to_df(stream_id, data, index_name, col_index_name,

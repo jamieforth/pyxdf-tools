@@ -114,14 +114,14 @@ class RawXdf(BaseXdf):
         return self._header
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, with_source_id=False, flatten=False):
+    def metadata(self, *stream_ids, with_stream_id=False, flatten=False):
         """Return raw stream metadata.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
 
         Flatten=True will place all leaf-node key-value pairs in nested
         dictionaries within the top-level dictionary.
@@ -129,96 +129,96 @@ class RawXdf(BaseXdf):
         data = self._get_stream_data(
             *stream_ids,
             data=self._metadata,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
         if flatten:
             data = self.__flatten(data)
         return data
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, with_source_id=False):
+    def channel_metadata(self, *stream_ids, with_stream_id=False):
         """Return raw stream channel metadata.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
         """
         if self._channel_metadata:
             return self._get_stream_data(
                 *stream_ids,
                 data=self._channel_metadata,
-                with_source_id=with_source_id,
+                with_stream_id=with_stream_id,
             )
 
     @XdfDecorators.loaded
-    def clock_times(self, *stream_ids, with_source_id=False):
+    def clock_times(self, *stream_ids, with_stream_id=False):
         """Return raw stream clock times.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_times,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, with_source_id=False):
+    def clock_offsets(self, *stream_ids, with_stream_id=False):
         """Return raw stream clock offsets.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_offsets,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, with_source_id=False):
+    def time_series(self, *stream_ids, with_stream_id=False):
         """Return raw stream time-series data.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._time_series,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_stamps(self, *stream_ids, with_source_id=False):
+    def time_stamps(self, *stream_ids, with_stream_id=False):
         """Return raw stream time-stamp data.
 
         Select data for stream_ids or default all loaded streams.
 
         Multiple streams are returned as a dictionary {stream_id: data}
         where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_source_id=True.
+        streams are returned as is unless with_stream_id=True.
         """
         return self._get_stream_data(
             *stream_ids,
             data=self._time_stamps,
-            with_source_id=with_source_id,
+            with_stream_id=with_stream_id,
         )
 
-    def single_or_multi_stream_data(self, data, with_source_id=False):
+    def single_or_multi_stream_data(self, data, with_stream_id=False):
         """Return single stream data or dictionary."""
-        if len(data) == 1 and not with_source_id:
+        if len(data) == 1 and not with_stream_id:
             return data[list(data.keys())[0]]
         else:
             return data
@@ -378,7 +378,7 @@ class RawXdf(BaseXdf):
         )
         return time_stamps
 
-    def _get_stream_data(self, *stream_ids, data, with_source_id):
+    def _get_stream_data(self, *stream_ids, data, with_stream_id):
         if not stream_ids or set(self.loaded_stream_ids) == set(stream_ids):
             pass
         else:
@@ -389,7 +389,7 @@ class RawXdf(BaseXdf):
             except KeyError as exc:
                 print(exc)
                 return None
-        return self.single_or_multi_stream_data(data, with_source_id)
+        return self.single_or_multi_stream_data(data, with_stream_id)
 
     def _assert_loaded(self):
         """Assert that data is loaded before continuing."""
