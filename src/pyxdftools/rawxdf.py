@@ -1,6 +1,7 @@
 """Thin wrapper for loading and accessing raw XDF data."""
 
 import numbers
+from collections.abc import Sequence
 from functools import wraps
 from warnings import warn
 
@@ -40,7 +41,7 @@ class XdfDecorators:
         return wrapper
 
 
-class RawXdf(BaseXdf):
+class RawXdf(BaseXdf, Sequence):
     """Thin wrapper for loading and accessing raw XDF data.
 
     Provides convenience methods for loading and accessing raw XDF data
@@ -57,6 +58,14 @@ class RawXdf(BaseXdf):
     def __init__(self, filename, verbose=False):
         """Initialise RawXdf via super class."""
         super().__init__(filename, verbose)
+
+    def __getitem__(self, index):
+        """Get stream-ID for each loaded streams."""
+        return self.loaded_stream_ids[index]
+
+    def __len__(self):
+        """Return the number of loaded streams."""
+        return self.num_loaded_streams
 
     # Properties
 
