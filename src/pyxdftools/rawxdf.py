@@ -398,13 +398,15 @@ class RawXdf(BaseXdf):
 
     def _assert_stream_ids(self, *stream_ids):
         """Assert that requested streams are loaded before continuing."""
-        valid_ids = set(self.loaded_stream_ids).intersection(
-            stream_ids)
-        try:
-            assert len(valid_ids) == len(stream_ids)
-        except AssertionError:
+        unique_ids = set(stream_ids)
+        if len(unique_ids) != len(stream_ids):
+            duplicates = [stream_id for stream_id in unique_ids
+                          if stream_ids.count(stream_id) > 1]
+            warn(f'Duplicate stream IDs: {duplicates}.')
+        valid_ids = unique_ids.intersection(self.loaded_stream_ids)
+        if len(valid_ids) != len(unique_ids):
             invalid_ids = list(valid_ids.symmetric_difference(stream_ids))
-            raise KeyError(f'Invalid stream IDs: {invalid_ids}') from None
+            raise KeyError(f'Invalid stream IDs: {invalid_ids}')
 
     # Name-mangled private methods to be used only by this class.
 
