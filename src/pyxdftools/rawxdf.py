@@ -7,6 +7,7 @@ from warnings import warn
 
 import numpy as np
 import pyxdf
+import scipy
 
 from .basexdf import BaseXdf
 from .errors import (NoLoadableStreamsError, XdfAlreadyLoadedError,
@@ -231,6 +232,66 @@ class RawXdf(BaseXdf, Sequence):
             return data[list(data.keys())[0]]
         else:
             return data
+
+    def resample_streams(self, *stream_ids, fs_new):
+        """
+        Resample multiple XDF streams to a given frequency.
+
+        Based on mneLab:
+        https://github.com/cbrnr/mnelab/blob/main/src/mnelab/io/xdf.py.
+
+        Parameters
+        ----------
+        streams : dict
+            A dictionary mapping stream IDs to XDF streams.
+        stream_ids : list[int]
+            The IDs of the desired streams.
+        fs_new : float
+            Resampling target frequency in Hz.
+
+        Returns
+        -------
+        all_time_series : np.ndarray
+            Array of shape (n_samples, n_channels) containing raw data. Time intervals where a
+            stream has no data contain `np.nan`.
+        first_time : float
+            Time of the very first sample in seconds.
+        """
+        start_times = []
+        end_times = []
+        n_total_chans = 0
+        for stream_id, stream in self.time_stamps(
+                *stream_ids, with_stream_id=True).items():
+            start_times.append(stream[0])
+            end_times.append(stream[-1])
+            n_total_chans += int(self.metadata(
+                stream_id)['channel_count'])
+        first_time = min(start_times)
+        last_time = max(end_times)
+
+        n_samples = int(np.ceil((last_time - first_time) * fs_new))
+        all_time_series = np.full((n_samples, n_total_chans), np.nan)
+
+        col_start = 0
+        for stream_id, stream in self.time_stamps(
+                *stream_ids, with_stream_id=True).items():
+            start_time = stream[0]
+            end_time = stream[-1]
+            len_new = int(np.ceil((end_time - start_time) * fs_new))
+
+            x_old = self.time_series(stream_id)
+            x_new = scipy.signal.resample(x_old, len_new, axis=0)
+
+            row_start = int(
+                np.floor((stream[0] - first_time) * fs_new)
+            )
+            row_end = row_start + x_new.shape[0]
+            col_end = col_start + x_new.shape[1]
+            all_time_series[row_start:row_end, col_start:col_end] = x_new
+
+            col_start += x_new.shape[1]
+
+        return all_time_series, first_time
 
     # Non-public methods.
 

@@ -3,6 +3,7 @@
 import mne
 import numpy as np
 import pandas as pd
+import scipy
 
 from .constants import microvolts
 from .rawxdf import RawXdf, XdfDecorators
@@ -190,6 +191,72 @@ class Xdf(RawXdf):
         ts = {stream_id: ts.join(times[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
+
+    def resample_streams(self, *stream_ids, cols=[], fs_new):
+        """
+        Resample multiple XDF streams to a given frequency.
+
+        Based on mneLab:
+        https://github.com/cbrnr/mnelab/blob/main/src/mnelab/io/xdf.py.
+
+        Parameters
+        ----------
+        stream_ids : list[int]
+            The IDs of the desired streams.
+        fs_new : float
+            Resampling target frequency in Hz.
+
+        Returns
+        -------
+        all_time_series : np.ndarray
+            Array of shape (n_samples, n_channels) containing raw data. Time
+            intervals where a stream has no data contain `np.nan`.
+        first_time : float
+            Time of the very first sample in seconds.
+        """
+        if not isinstance(cols, list):
+            cols = [cols]
+        start_times = []
+        end_times = []
+        n_total_chans = 0
+        for stream_id, time_stamps in self.time_stamps(
+                *stream_ids, with_stream_id=True).items():
+            start_times.append(time_stamps.iloc[0].item())
+            end_times.append(time_stamps.iloc[-1].item())
+            if cols:
+                n_total_chans += len(cols)
+            else:
+                n_total_chans += self.metadata(
+                    stream_id)['channel_count'].iloc[0]
+        first_time = min(start_times)
+        last_time = max(end_times)
+
+        n_samples = int(np.ceil((last_time - first_time) * fs_new))
+        all_resampled = {}
+
+        for stream_id, time_stamps in self.time_stamps(
+                *stream_ids, with_stream_id=True).items():
+            start_time = time_stamps.iloc[0].item()
+            end_time = time_stamps.iloc[-1].item()
+            len_new = int(np.ceil((end_time - start_time) * fs_new))
+
+            x_old = self.time_series(stream_id, cols=cols)
+            x_new = scipy.signal.resample(x_old, len_new, axis=0)
+            resampled = np.full((n_samples, x_new.shape[1]), np.nan)
+
+            row_start = int(
+                np.floor((time_stamps.iloc[0].item() - first_time) * fs_new)
+            )
+            row_end = row_start + x_new.shape[0]
+            col_end = x_new.shape[1]
+            resampled[row_start:row_end, 0:col_end] = x_new
+            resampled = pd.DataFrame(resampled, columns=x_old.columns)
+            all_resampled[stream_id] = resampled
+
+        all_resampled = pd.concat(all_resampled, axis='columns')
+        all_resampled.columns.rename('stream', level=0, inplace=True)
+
+        return all_resampled, first_time
 
     # Non public methods.
 
