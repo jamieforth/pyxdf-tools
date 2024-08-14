@@ -208,6 +208,8 @@ class Xdf(RawXdf):
 
         This method can be implemented by a subclass for custom parsing
         requirements.
+
+        Returns a DataFrame.
         """
         data = super()._parse_metadata(data, flatten=True)
         df = pd.DataFrame(data).T
@@ -225,8 +227,8 @@ class Xdf(RawXdf):
         This method can be implemented by a subclass for custom parsing
         requirements.
 
-        Always returns a hierarchical (multiindex) DataFrame, even if
-        only a single stream is loaded.
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
         """
         # Check that data streams have valid channel metadata.
         data = super()._parse_channel_metadata(data)
@@ -249,7 +251,8 @@ class Xdf(RawXdf):
         This method can be implemented by a subclass for custom parsing
         requirements.
 
-        Always returns a non-hierarchical DataFrame.
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
         """
         data = super()._parse_clock_times(data)
         data = self._to_DataFrames(data, 'sample', columns=['time'])
@@ -264,8 +267,8 @@ class Xdf(RawXdf):
         This method can be implemented by a subclass for custom parsing
         requirements.
 
-        Always returns a hierarchical (multiindex) DataFrame, even if
-        only a single stream is loaded.
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
         """
         data = super()._parse_clock_offsets(data, pop_singleton_lists=True)
         data = self._to_DataFrames(data, 'samples')
@@ -284,8 +287,8 @@ class Xdf(RawXdf):
         This method can be implemented by a subclass for custom parsing
         requirements.
 
-        Always returns a hierarchical (multiindex) DataFrame, even if
-        only a single stream is loaded.
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
         data = self._to_DataFrames(data, 'sample',
@@ -320,8 +323,8 @@ class Xdf(RawXdf):
         This method can be implemented by a subclass for custom parsing
         requirements.
 
-        Always returns a hierarchical (multiindex) DataFrame, even if
-        only a single stream is loaded.
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
         data = self._to_DataFrames(data,
