@@ -449,11 +449,11 @@ class RawXdf(BaseXdf, Sequence):
         return time_stamps
 
     def _get_stream_data(self, *stream_ids, data, with_stream_id):
-        if not stream_ids or set(self.loaded_stream_ids) == set(stream_ids):
+        if not stream_ids or data.keys() == set(stream_ids):
             pass
         else:
             try:
-                self._assert_stream_ids(*stream_ids)
+                self._assert_stream_ids(*stream_ids, data=data)
                 data = {stream_id: data[stream_id]
                         for stream_id in stream_ids}
             except KeyError as exc:
@@ -466,14 +466,10 @@ class RawXdf(BaseXdf, Sequence):
         if not self.loaded:
             raise XdfNotLoadedError
 
-    def _assert_stream_ids(self, *stream_ids):
+    def _assert_stream_ids(self, *stream_ids, data):
         """Assert that requested streams are loaded before continuing."""
-        unique_ids = set(stream_ids)
-        if len(unique_ids) != len(stream_ids):
-            duplicates = [stream_id for stream_id in unique_ids
-                          if stream_ids.count(stream_id) > 1]
-            warn(f'Duplicate stream IDs: {duplicates}.')
-        valid_ids = unique_ids.intersection(self.loaded_stream_ids)
+        unique_ids = self.remove_duplicates(stream_ids)
+        valid_ids = set(unique_ids).intersection(data.keys())
         if len(valid_ids) != len(unique_ids):
             invalid_ids = list(valid_ids.symmetric_difference(stream_ids))
             raise KeyError(f'Invalid stream IDs: {invalid_ids}')
