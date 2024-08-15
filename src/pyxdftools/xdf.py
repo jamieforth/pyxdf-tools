@@ -1,5 +1,7 @@
 """Main Xdf class for working with XDF data."""
 
+from warnings import warn
+
 import mne
 import numpy as np
 import pandas as pd
@@ -188,6 +190,9 @@ class Xdf(RawXdf):
                                        with_stream_id=True)
         times = self.time_stamps(*stream_ids,
                                  with_stream_id=True)
+        if not time_series:
+            warn(f'No data for streams {stream_ids} and columns {cols}.')
+            return None
         ts = {stream_id: ts.join(times[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
@@ -358,6 +363,9 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
+        data, empty = self._remove_empty_streams(data)
+        if empty and self.verbose:
+            warn(f'No time-series data for streams: {empty}.')
         data = self._to_DataFrames(data, 'sample',
                                    col_index_name='channels')
 
@@ -394,6 +402,9 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
+        data, empty = self._remove_empty_streams(data)
+        if empty and self.verbose:
+            warn(f'No time-stamp data for streams: {empty}.')
         data = self._to_DataFrames(data,
                                    'samples',
                                    columns=['time_stamp'])
@@ -413,16 +424,16 @@ class Xdf(RawXdf):
         if data is not None and cols is not None:
             if not isinstance(cols, list):
                 cols = [cols]
-            try:
-                self._assert_columns(data, cols)
-            except KeyError as exc:
-                print(exc)
-                return None
-            if isinstance(data, pd.DataFrame):
-                data = data.loc[:, cols]
+            if isinstance(data, dict):
+                subset = {}
+                for stream_id in data.keys():
+                    df_cols = self._check_columns(data[stream_id], cols)
+                    if df_cols:
+                        subset[stream_id] = data[stream_id].loc[:, df_cols]
+                data = subset
             else:
-                data = {stream_id: df.loc[:, cols]
-                        for stream_id, df in data.items()}
+                df_cols = self._check_columns(data, cols)
+                data = data.loc[:, df_cols]
         return data
 
     def _to_DataFrames(self, data, index_name, col_index_name=None,
@@ -440,36 +451,28 @@ class Xdf(RawXdf):
         streams = {}
         empty = {}
         for stream_id, d in data.items():
-            if d is not None:
-                streams[stream_id] = d
-            else:
+            if (d is None
+                or (isinstance(d, np.ndarray)
+                    and 0 in d.shape)):
                 empty[stream_id] = d
+            else:
+                streams[stream_id] = d
         return streams, empty
 
     def _to_df(self, stream_id, data, index_name, col_index_name=None,
                columns=None):
         df = pd.DataFrame(data, columns=columns)
-        if df.empty:
-            return None
         df.index.set_names(index_name, inplace=True)
         if col_index_name:
             df.columns.set_names(col_index_name, inplace=True)
         return df
 
-    def _assert_columns(self, data, columns):
-        try:
-            if isinstance(data, pd.DataFrame):
-                assert all([col in data.columns for col in columns])
-            else:
-                for stream_id, df in data.items():
-                    if df.columns.nlevels == 1:
-                        assert all([col in df.columns for col in columns])
-                    elif df.columns.nlevels == 2:
-                        assert all([col in df.columns.levels[1]
-                                    for col in columns])
-                    else:
-                        raise ValueError(
-                            'Column index must have 1 or 2 levels.'
-                        )
-        except AssertionError:
-            raise KeyError(f'Invalid columns: {columns}') from None
+    def _check_columns(self, df, columns):
+        columns = self.remove_duplicates(columns)
+        valid_cols = [col for col in columns
+                      if col in df.columns]
+        if len(valid_cols) != len(columns):
+            invalid_cols = set(columns).difference(df.columns)
+            if self.verbose:
+                warn(f'Invalid columns: {invalid_cols}')
+        return valid_cols
