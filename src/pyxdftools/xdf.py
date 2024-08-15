@@ -59,7 +59,7 @@ class Xdf(RawXdf):
         return self
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, cols=[]):
+    def metadata(self, *stream_ids, cols=None):
         """Return stream metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -71,7 +71,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, cols=[], with_stream_id=False):
+    def channel_metadata(self, *stream_ids, cols=None, with_stream_id=False):
         """Return channel metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -109,7 +109,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, cols=[], with_stream_id=False):
+    def clock_offsets(self, *stream_ids, cols=None, with_stream_id=False):
         """Return clock offset data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -127,7 +127,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, cols=[], with_stream_id=False):
+    def time_series(self, *stream_ids, cols=None, with_stream_id=False):
         """Return stream time-series data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -173,7 +173,7 @@ class Xdf(RawXdf):
                        for stream_id, ch_units in stream_units.items()}
             return scaling
 
-    def data(self, *stream_ids, cols=[], with_stream_id=False):
+    def data(self, *stream_ids, cols=None, with_stream_id=False):
         """Return stream time-series and time-stamps as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -192,7 +192,7 @@ class Xdf(RawXdf):
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
 
-    def resample_streams(self, *stream_ids, cols=[], fs_new):
+    def resample_streams(self, *stream_ids, cols=None, fs_new):
         """
         Resample multiple XDF streams to a given frequency.
 
@@ -214,7 +214,7 @@ class Xdf(RawXdf):
         first_time : float
             Time of the very first sample in seconds.
         """
-        if not isinstance(cols, list):
+        if cols is not None and not isinstance(cols, list):
             cols = [cols]
         start_times = []
         end_times = []
@@ -399,7 +399,7 @@ class Xdf(RawXdf):
                                    columns=['time_stamp'])
         return data
 
-    def _get_stream_data(self, *stream_ids, data, cols=[],
+    def _get_stream_data(self, *stream_ids, data, cols=None,
                          with_stream_id=False):
         if isinstance(data, dict):
             data = super()._get_stream_data(*stream_ids, data=data,
@@ -410,7 +410,7 @@ class Xdf(RawXdf):
         else:
             raise ValueError('Data should be a dictionary or DataFrame')
         # Subset data.
-        if data is not None and cols:
+        if data is not None and cols is not None:
             if not isinstance(cols, list):
                 cols = [cols]
             try:
