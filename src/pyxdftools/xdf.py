@@ -425,56 +425,6 @@ class Xdf(RawXdf):
                         for stream_id, df in data.items()}
         return data
 
-    # def _get_stream_data_old(self, *stream_ids, data, cols=[],
-    #                          with_stream_id=False):
-    #     if (
-    #             not cols
-    #             and (
-    #                 not stream_ids
-    #                 or set(self.loaded_stream_ids) == set(stream_ids)
-    #             )
-    #     ):
-    #         return data
-    #     else:
-    #         if cols and not isinstance(cols, list):
-    #             cols = [cols]
-    #         try:
-    #             self._assert_stream_ids(*stream_ids)
-    #             self._assert_columns(data, cols)
-    #         except KeyError as exc:
-    #             print(exc)
-    #             return None
-
-    #     stream_ids = list(stream_ids)
-
-    #     if data.columns.nlevels == 1:
-    #         if data.columns.name == 'stream_id':
-    #             # Data frame with a single-level column index indexed by
-    #             # stream-id. Row numbers index observations.
-    #             return data.loc[:, stream_ids]
-    #         else:
-    #             # Data frame with a single-level column index and rows
-    #             # indexed by stream-id.
-    #             if stream_ids and cols:
-    #                 return data.loc[stream_ids, cols]
-    #             elif stream_ids and not cols:
-    #                 return data.loc[stream_ids, :]
-    #             else:
-    #                 return data.loc[:, cols]
-    #     elif data.columns.nlevels == 2:
-    #         # Data frame with a multi-level column index where the first
-    #         # level is stream-id and the second the available data
-    #         # variables for each stream. Rows numbers index
-    #         # observations.
-    #         if stream_ids and cols:
-    #             return data.loc[:, (stream_ids, cols)]
-    #         elif stream_ids and not cols:
-    #             return data.loc[:, stream_ids]
-    #         else:
-    #             return data.loc[:, (slice(None), cols)]
-    #     else:
-    #         raise UserWarning('Column index must have 1 or 2 levels.')
-
     def _to_DataFrames(self, data, index_name, col_index_name=None,
                        columns=None):
         # Map a dictionary of {stream-id: data} to a dictionary of
@@ -485,32 +435,6 @@ class Xdf(RawXdf):
                                        columns=columns)
                 for stream_id, d, in data.items()}
         return data
-
-    # def _merge_stream_data(self, data, index_name, *, col_index_name=None,
-    #                        col_names=None, with_stream_id=False):
-    #     # For single streams return a non-hierarchical DataFrame unless
-    #     # with_stream_id=True.
-    #     if len(data) == 1 and not with_stream_id:
-    #         stream_id = list(data.keys())[0]
-    #         data = list(data.values())[0]
-    #         data = self._to_df(stream_id, data, index_name, col_index_name,
-    #                            col_names)
-    #         return data
-
-    #     # Otherwise returns a hierarchical (MultiIndex) DataFrame with a
-    #     # two-dimensional column index. Stream ID is the first dimension
-    #     # of the multi-level column index.
-    #     data = {stream_id: self._to_df(stream_id, d,
-    #                                    index_name,
-    #                                    col_index_name,
-    #                                    col_names)
-    #             for stream_id, d, in data.items()}
-    #     data = pd.concat(data, axis='columns')
-    #     # Set stream_id as the first column index level.
-    #     data.columns.set_names('stream_id', level=0, inplace=True)
-    #     data.sort_index(axis='columns', level='stream_id',
-    #                     sort_remaining=False, inplace=True)
-    #     return data
 
     def _remove_empty_streams(self, data):
         streams = {}
