@@ -170,7 +170,7 @@ class Xdf(RawXdf):
                                              with_stream_id=True)
         if stream_units is not None:
             scaling = {stream_id: ch_units.apply(
-                lambda units: [1e-6 if u in microvolts else np.nan
+                lambda units: [1e-6 if u in microvolts else 1
                                for u in units])
                        for stream_id, ch_units in stream_units.items()}
             return scaling
@@ -376,7 +376,9 @@ class Xdf(RawXdf):
                 data = {stream_id: ts * scalings[stream_id].loc[
                     stream_id, channel_scale_field
                 ]
-                        if stream_id in scalings else ts
+                        if (stream_id in scalings
+                            and not (scalings[stream_id] == 1).all().item())
+                        else ts
                         for stream_id, ts in data.items()}
 
         if channel_name_field:
