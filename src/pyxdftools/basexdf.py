@@ -1,5 +1,7 @@
 """Thin wrapper for inspecting raw XDF data."""
 
+from warnings import warn
+
 import pyxdf
 
 
@@ -47,6 +49,20 @@ class BaseXdf:
         """
         return pyxdf.match_streaminfos(BaseXdf.resolve_streams(self),
                                        parameters)
+
+    def remove_duplicates(self, values):
+        """Remove duplicate values from a list preserving order."""
+        unique = set(values)
+        if len(unique) == len(values):
+            unique = values
+        else:
+            unique = [v for v in values
+                      if values.count(v) == 1]
+            duplicates = set([v for v in values
+                              if values.count(v) > 1])
+            if self.verbose:
+                warn(f'Duplicate values: {duplicates}.')
+        return unique
 
     # Abstract methods.
 
