@@ -94,23 +94,6 @@ class Xdf(RawXdf):
             return None
 
     @XdfDecorators.loaded
-    def clock_times(self, *stream_ids, with_stream_id=False):
-        """Return clock times as a DataFrame.
-
-        Select data for stream_ids or default all loaded streams.
-
-        Multiple streams are returned as a dictionary {stream_id:
-        DataFrame} where number of items is equal to the number of
-        streams. Single streams are returned as is unless
-        with_stream_id=True.
-        """
-        return self._get_stream_data(
-            *stream_ids,
-            data=self._clock_times,
-            with_stream_id=with_stream_id,
-        )
-
-    @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, cols=None, with_stream_id=False):
         """Return clock offset data as a DataFrame.
 
@@ -314,22 +297,6 @@ class Xdf(RawXdf):
         data = self._to_DataFrames(data, 'channel')
         return data
 
-    def _parse_clock_times(self, data, **kwargs):
-        """Parse clock times for all loaded streams into a DataFrame.
-
-        Called automatically when XDF data is loaded and the returned
-        DataFrame is cached within the instance.
-
-        This method can be implemented by a subclass for custom parsing
-        requirements.
-
-        Returns a dictionary {stream_id: DataFrame} where number of
-        items is equal to the number of streams.
-        """
-        data = super()._parse_clock_times(data)
-        data = self._to_DataFrames(data, 'sample', columns=['time'])
-        return data
-
     def _parse_clock_offsets(self, data, **kwargs):
         """Parse clock offsets for all loaded streams into a DataFrame.
 
@@ -342,8 +309,8 @@ class Xdf(RawXdf):
         Returns a dictionary {stream_id: DataFrame} where number of
         items is equal to the number of streams.
         """
-        data = super()._parse_clock_offsets(data, pop_singleton_lists=True)
-        data = self._to_DataFrames(data, 'samples')
+        data = super()._parse_clock_offsets(data)
+        data = self._to_DataFrames(data, 'sample')
         return data
 
     def _parse_time_series(self, data, channel_scale_field,

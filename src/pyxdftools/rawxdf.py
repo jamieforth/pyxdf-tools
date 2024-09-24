@@ -111,7 +111,6 @@ class RawXdf(BaseXdf, Sequence):
         self._metadata = self._parse_metadata(streams, **parse_kwargs)
         self._channel_metadata = self._parse_channel_metadata(streams,
                                                               **parse_kwargs)
-        self._clock_times = self._parse_clock_times(streams, **parse_kwargs)
         self._clock_offsets = self._parse_clock_offsets(streams,
                                                         **parse_kwargs)
         self._time_series = self._parse_time_series(streams, **parse_kwargs)
@@ -163,24 +162,8 @@ class RawXdf(BaseXdf, Sequence):
             )
 
     @XdfDecorators.loaded
-    def clock_times(self, *stream_ids, with_stream_id=False):
-        """Return raw stream clock times.
-
-        Select data for stream_ids or default all loaded streams.
-
-        Multiple streams are returned as a dictionary {stream_id: data}
-        where number of items is equal to the number of streams. Single
-        streams are returned as is unless with_stream_id=True.
-        """
-        return self._get_stream_data(
-            *stream_ids,
-            data=self._clock_times,
-            with_stream_id=with_stream_id,
-        )
-
-    @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, with_stream_id=False):
-        """Return raw stream clock offsets.
+        """Return raw stream clock offsets: time and value.
 
         Select data for stream_ids or default all loaded streams.
 
@@ -402,30 +385,22 @@ class RawXdf(BaseXdf, Sequence):
         return ch_metadata
 
     @XdfDecorators.parse
-    def _parse_clock_times(self, data, pop_singleton_lists=False, **kwargs):
-        # Extract clock times from stream data.
+    def _parse_clock_offsets(self, data, **kwargs):
+        # Extract clock offsets.
         clock_times = self.__collect_stream_data(
             data=data,
             data_path=['clock_times'],
-            pop_singleton_lists=pop_singleton_lists,
         )
-        return clock_times
-
-    @XdfDecorators.parse
-    def _parse_clock_offsets(self, data, pop_singleton_lists=True, **kwargs):
-        # Extract clock offsets from footer data.
-        clock_offsets = self.__collect_stream_data(
+        clock_values = self.__collect_stream_data(
             data=data,
-            data_path=['footer', 'info', 'clock_offsets', 'offset'],
-            pop_singleton_lists=pop_singleton_lists,
+            data_path=['clock_values'],
         )
-        # Coerce strings to floats.
+
         clock_offsets = {
-            stream_id: [{key: [float(f) for f in value]
-                         if isinstance(value, list) else float(value)
-                         for key, value in props.items()}
-                        for props in data]
-            for stream_id, data in clock_offsets.items()
+            stream_id: {
+                'time': times,
+                'value': clock_values[stream_id]
+            } for stream_id, times in clock_times.items()
         }
         return clock_offsets
 
