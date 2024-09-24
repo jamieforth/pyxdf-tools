@@ -334,7 +334,7 @@ class Xdf(RawXdf):
         if empty and self.verbose:
             warn(f'No time-series data for streams: {empty}.')
         data = self._to_DataFrames(data, 'sample',
-                                   col_index_name='channels')
+                                   col_index_name='channel')
 
         if channel_scale_field:
             scalings = self.channel_scalings(
@@ -375,7 +375,7 @@ class Xdf(RawXdf):
         if empty and self.verbose:
             warn(f'No time-stamp data for streams: {empty}.')
         data = self._to_DataFrames(data,
-                                   'samples',
+                                   'sample',
                                    columns=['time_stamp'])
         return data
 
