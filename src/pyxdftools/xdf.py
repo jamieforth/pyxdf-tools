@@ -8,6 +8,7 @@ import pandas as pd
 import scipy
 
 from .constants import microvolts
+from .errors import NoLoadableStreamsError, XdfAlreadyLoadedError
 from .rawxdf import RawXdf, XdfDecorators
 
 
@@ -52,12 +53,15 @@ class Xdf(RawXdf):
 
         Any pyxdf.load_xdf() kwargs provided will be passed to that
         function. All other kwargs are assumed to be stream properties
-        and will be passed to resolve_streams().
+        and will be passed to parsing methods.
         """
-        super().load(*select_streams,
-                     channel_scale_field=channel_scale_field,
-                     channel_name_field=channel_name_field,
-                     **kwargs)
+        try:
+            self._load(*select_streams,
+                       channel_scale_field=channel_scale_field,
+                       channel_name_field=channel_name_field,
+                       **kwargs)
+        except (NoLoadableStreamsError, XdfAlreadyLoadedError) as exc:
+            print(exc)
         return self
 
     @XdfDecorators.loaded

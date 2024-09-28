@@ -82,6 +82,7 @@ class RawXdf(BaseXdf, Sequence):
         return self._loaded_stream_ids
 
     @property
+    @XdfDecorators.loaded
     def num_loaded_streams(self):
         """Return the number of streams currently loaded."""
         return len(self.loaded_stream_ids)
@@ -94,28 +95,26 @@ class RawXdf(BaseXdf, Sequence):
         Any pyxdf.load_xdf() kwargs provided will be passed to that
         function. All other kwargs will be passed to parsing methods.
         """
-        # Separate kwargs.
-        xdf_kwargs = {k: kwargs[k] for k in
-                      kwargs.keys() & pyxdf.load_xdf.__kwdefaults__.keys()}
-        parse_kwargs = {k: kwargs[k] for k in
-                        kwargs.keys() - pyxdf.load_xdf.__kwdefaults__.keys()}
-
         try:
-            streams, header = self._load(*select_streams, **xdf_kwargs)
+            self._load(*select_streams, **kwargs)
         except (NoLoadableStreamsError, XdfAlreadyLoadedError) as exc:
             print(exc)
-            return self
-
-        # Parse XDF into separate structures.
-        self._header = self._parse_header(header, **parse_kwargs)
-        self._metadata = self._parse_metadata(streams, **parse_kwargs)
-        self._channel_metadata = self._parse_channel_metadata(streams,
-                                                              **parse_kwargs)
-        self._clock_offsets = self._parse_clock_offsets(streams,
-                                                        **parse_kwargs)
-        self._time_series = self._parse_time_series(streams, **parse_kwargs)
-        self._time_stamps = self._parse_time_stamps(streams, **parse_kwargs)
         return self
+
+    @XdfDecorators.loaded
+    def unload(self):
+        """Free memory - useful for handling large datasets."""
+        # Reset class attributes.
+        self._loaded = False
+        del self._loaded_stream_ids
+
+        # Free memory
+        del self._header
+        del self._metadata
+        del self._channel_metadata
+        del self._clock_offsets
+        del self._time_series
+        del self._time_stamps
 
     @XdfDecorators.loaded
     def header(self):
@@ -281,19 +280,29 @@ class RawXdf(BaseXdf, Sequence):
     def _load(self, *select_streams, **kwargs):
         if self.loaded:
             raise XdfAlreadyLoadedError
-        if 'verbose' not in kwargs:
-            kwargs['verbose'] = self.verbose
+
+        # Separate kwargs.
+        xdf_kwargs = {k: kwargs[k] for k in
+                      kwargs.keys() & pyxdf.load_xdf.__kwdefaults__.keys()}
+        parse_kwargs = {k: kwargs[k] for k in
+                        kwargs.keys() - pyxdf.load_xdf.__kwdefaults__.keys()}
+
+        if 'verbose' not in xdf_kwargs:
+            xdf_kwargs['verbose'] = self.verbose
+
         if not select_streams:
             select_streams = None
+
         try:
             streams, header = pyxdf.load_xdf(self.filename, select_streams,
-                                             **kwargs)
+                                             **xdf_kwargs)
         except np.linalg.LinAlgError:
             loadable_streams = self._find_loadable_streams(
-                select_streams, **kwargs)
+                select_streams, **xdf_kwargs)
             if loadable_streams:
                 streams, header = pyxdf.load_xdf(self.filename,
-                                                 loadable_streams, **kwargs)
+                                                 loadable_streams,
+                                                 **xdf_kwargs)
             else:
                 raise NoLoadableStreamsError(select_streams)
 
@@ -306,7 +315,18 @@ class RawXdf(BaseXdf, Sequence):
         # Initialise class attributes.
         self._loaded_stream_ids = stream_ids
         self._loaded = True
-        return streams, header
+
+        # Parse XDF into separate structures.
+        self._header = self._parse_header(header, **parse_kwargs)
+        self._metadata = self._parse_metadata(streams, **parse_kwargs)
+        self._channel_metadata = self._parse_channel_metadata(streams,
+                                                              **parse_kwargs)
+        self._clock_offsets = self._parse_clock_offsets(streams,
+                                                        **parse_kwargs)
+        self._time_series = self._parse_time_series(streams, **parse_kwargs)
+        self._time_stamps = self._parse_time_stamps(streams, **parse_kwargs)
+
+        return self
 
     def _find_loadable_streams(self, select_streams=None, **kwargs):
         if select_streams is None:
