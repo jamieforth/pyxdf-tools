@@ -281,7 +281,8 @@ class RawXdf(BaseXdf, Sequence):
     def _load(self, *select_streams, **kwargs):
         if self.loaded:
             raise XdfAlreadyLoadedError
-        kwargs['verbose'] = self.verbose
+        if 'verbose' not in kwargs:
+            kwargs['verbose'] = self.verbose
         if not select_streams:
             select_streams = None
         try:
