@@ -180,6 +180,24 @@ class Xdf(RawXdf):
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
 
+    def time_stamp_summary(self):
+        summary = {}
+        for stream_id, data in self.time_stamps().items():
+            summary[stream_id] = {
+                'sample_count': len(data),
+                'first_timestamp': data.iloc[0, 0],
+                'last_timestamp': data.iloc[-1, 0],
+                }
+        summary = pd.DataFrame(summary).T
+        summary.index.rename('stream_id', inplace=True)
+        summary['sample_count'] = summary['sample_count'].astype(int)
+        summary['duration_sec'] = (summary['last_timestamp'] -
+                                   summary['first_timestamp'])
+        summary['duration_min'] = summary['duration_sec'] / 60
+        summary['effective_srate'] = 1 / (summary['duration_sec'] /
+                                          summary['sample_count'])
+        return summary
+
     def resample_streams(self, *stream_ids, cols=None, fs_new):
         """
         Resample multiple XDF streams to a given frequency.
