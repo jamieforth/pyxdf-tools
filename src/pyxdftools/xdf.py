@@ -310,7 +310,7 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_clock_offsets(data)
-        data = self._to_DataFrames(data, 'sample')
+        data = self._to_DataFrames(data, 'period')
         return data
 
     def _parse_time_series(self, data, channel_scale_field,
