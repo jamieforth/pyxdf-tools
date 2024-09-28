@@ -288,7 +288,7 @@ class Xdf(RawXdf):
         # Check that data streams have valid channel metadata.
         data = super()._parse_channel_metadata(data)
         data, empty = self._remove_empty_streams(data)
-        if empty:
+        if empty and self.verbose:
             print(f"""No channel metadata for streams: {' '.join(str(i)
             for i in sorted(list(empty.keys())))}""")
         if not data:
