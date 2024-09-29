@@ -184,23 +184,27 @@ class Xdf(RawXdf):
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
 
-    def time_stamp_summary(self):
-        summary = {}
-        for stream_id, data in self.time_stamps().items():
-            summary[stream_id] = {
-                'sample_count': len(data),
-                'first_timestamp': data.iloc[0, 0],
-                'last_timestamp': data.iloc[-1, 0],
-                }
-        summary = pd.DataFrame(summary).T
-        summary.index.rename('stream_id', inplace=True)
-        summary['sample_count'] = summary['sample_count'].astype(int)
-        summary['duration_sec'] = (summary['last_timestamp'] -
-                                   summary['first_timestamp'])
-        summary['duration_min'] = summary['duration_sec'] / 60
-        summary['effective_srate'] = 1 / (summary['duration_sec'] /
-                                          summary['sample_count'])
-        return summary
+    def time_stamp_summary(self, *stream_ids):
+        """Generate a summary of loaded time-stamp data."""
+        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
+        data = {}
+        for stream_id, ts in time_stamps.items():
+            data[stream_id] = {
+                'sample_count': len(ts),
+                'first_timestamp': ts.iloc[0, 0],
+                'last_timestamp': ts.iloc[-1, 0],
+            }
+        data = pd.DataFrame(data).T
+        data.index.rename('stream_id', inplace=True)
+        data['sample_count'] = data['sample_count'].astype(int)
+        data['duration_sec'] = (data['last_timestamp'] -
+                                data['first_timestamp'])
+        data['duration_min'] = data['duration_sec'] / 60
+        data['effective_srate'] = 1 / (data['duration_sec'] /
+                                       data['sample_count'])
+        data.attrs.update({'load_params': self.load_params})
+        return data
+
 
     def resample_streams(self, *stream_ids, cols=None, fs_new):
         """

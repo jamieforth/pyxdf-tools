@@ -50,6 +50,7 @@ class RawXdf(BaseXdf, Sequence):
 
     Properties:
         loaded: Boolean indicating if a file has been loaded.
+        load_params: Dict of xdf load parameters.
         num_loaded_streams: number of streams currently loaded.
         loaded_stream_ids: IDs for all loaded streams.
     """
@@ -86,6 +87,12 @@ class RawXdf(BaseXdf, Sequence):
     def num_loaded_streams(self):
         """Return the number of streams currently loaded."""
         return len(self.loaded_stream_ids)
+
+    @property
+    @XdfDecorators.loaded
+    def load_params(self):
+        """Return the parameters used to load the data."""
+        return self._load_params
 
     # Public methods.
 
@@ -315,6 +322,9 @@ class RawXdf(BaseXdf, Sequence):
         # Initialise class attributes.
         self._loaded_stream_ids = stream_ids
         self._loaded = True
+        self._load_params = {k: v
+                             for (k, v) in xdf_kwargs.items()
+                             if k not in ['verbose']}
 
         # Parse XDF into separate structures.
         self._header = self._parse_header(header, **parse_kwargs)
