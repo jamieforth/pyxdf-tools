@@ -87,15 +87,15 @@ class Xdf(RawXdf):
         streams. Single streams are returned as is unless
         with_stream_id=True.
         """
-        if self._channel_metadata:
-            return self._get_stream_data(
-                *stream_ids,
-                data=self._channel_metadata,
-                cols=cols,
-                with_stream_id=with_stream_id,
-            )
-        else:
+        if not self._channel_metadata:
             return None
+        channel_metadata = self._get_stream_data(
+            *stream_ids,
+            data=self._channel_metadata,
+            cols=cols,
+            with_stream_id=with_stream_id,
+        )
+        return channel_metadata
 
     @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, cols=None, with_stream_id=False):
@@ -152,9 +152,15 @@ class Xdf(RawXdf):
 
     def channel_scalings(self, *stream_ids, channel_scale_field):
         """Return a dictionary of DataFrames with channel scaling values."""
-        stream_units = self.channel_metadata(*stream_ids,
-                                             cols=channel_scale_field,
-                                             with_stream_id=True)
+        try:
+            stream_units = self.channel_metadata(*stream_ids,
+                                                 cols=channel_scale_field,
+                                                 with_stream_id=True)
+        except KeyError as exc:
+            if self.verbose:
+                print(exc)
+            return None
+
         if stream_units is not None:
             scaling = {stream_id: ch_units.apply(
                 lambda units: [1e-6 if u in microvolts else 1
@@ -175,12 +181,15 @@ class Xdf(RawXdf):
         time_series = self.time_series(*stream_ids,
                                        cols=cols,
                                        with_stream_id=True)
-        times = self.time_stamps(*stream_ids,
-                                 with_stream_id=True)
         if not time_series:
-            warn(f'No data for streams {stream_ids} and columns {cols}.')
             return None
-        ts = {stream_id: ts.join(times[stream_id]).set_index('time_stamp')
+        time_stamps = self.time_stamps(*stream_ids,
+                                       with_stream_id=True)
+        if not time_stamps:
+            return None
+
+        ts = {stream_id:
+              ts.join(time_stamps[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
 
@@ -468,6 +477,5 @@ class Xdf(RawXdf):
                       if col in df.columns]
         if len(valid_cols) != len(columns):
             invalid_cols = set(columns).difference(df.columns)
-            if self.verbose:
-                warn(f'Invalid columns: {invalid_cols}')
+            raise KeyError(f'Invalid columns: {invalid_cols}')
         return valid_cols
