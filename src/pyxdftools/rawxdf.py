@@ -50,7 +50,7 @@ class RawXdf(BaseXdf, Sequence):
 
     Properties:
         loaded: Boolean indicating if a file has been loaded.
-        load_params: Dict of xdf load parameters.
+        load_params: Dict of pyxdf_load parameters.
         num_loaded_streams: number of streams currently loaded.
         loaded_stream_ids: IDs for all loaded streams.
     """
