@@ -214,6 +214,15 @@ class Xdf(RawXdf):
         data.attrs.update({'load_params': self.load_params})
         return data
 
+    def time_stamp_intervals(self, *stream_ids, with_stream_id=True):
+        """Return time-stamp intervals for each stream."""
+        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
+        data = {}
+        for stream_id, ts in time_stamps.items():
+            data[stream_id] = ts['time_stamp'].diff()
+        data = pd.DataFrame(data)
+        data.attrs.update({'load_params': self.load_params})
+        return data
 
     def resample_streams(self, *stream_ids, cols=None, fs_new):
         """
