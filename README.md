@@ -7,15 +7,34 @@
 pip install -e git+https://github.com/jamieforth/pyxdf-tools.git#egg=pyxdftools
 ```
 
-### Create a new environment from this repo using `pipenv`
+### Create a new environment from this repo using `PDM`
+
+PDM is a package and dependency manager, this is simplest way to set
+up a self-contained virtual environment with everything installed.
+
+First install PDM: https://pdm-project.org/.
 
 ```
 git clone https://github.com/jamieforth/pyxdf-tools.git
 cd pyxdf-tools
-pipenv install
+pdm install
 ```
 
-## Usage
+### Updating
+
+```
+git pull
+pdm update
+```
+
+### Using
+
+The virtual environment can be activated/deactivated in the usual way.
+
+```
+source .venv/bin/activate
+deactivate
+```
 
 ### Inspecting streams
 
@@ -25,13 +44,13 @@ from pyxdftools import XdfData
 xdf_data_path = '<filename>.xdf'
 
 # Inspect all available streams.
-XdfData(xdf_data_path).resolve_streams()
+Xdf(xdf_data_path).resolve_streams()
 
 # Inspect streams by ID.
-XdfData(xdf_data_path).resolve_streams(stream_id=[1,2])
+Xdf(xdf_data_path).resolve_streams(stream_id=[1,2])
 
 # Inspect streams by properties (accepts multiple keyword args).
-XdfData(xdf_data_path).resolve_streams(type='eeg')
+Xdf(xdf_data_path).resolve_streams(type='eeg')
 ```
 
 Returns a pandas DataFrame.
@@ -45,13 +64,13 @@ Returns a pandas DataFrame.
 
 ```
 # Load all streams.
-xdf = XdfData(xdf_data_path).load()
+xdf = Xdf(xdf_data_path).load()
 
 # Load subset of streams by ID.
-xdf = XdfData(xdf_data_path).load(1, 2)
+xdf = Xdf(xdf_data_path).load(1, 2)
 
 # Load streams matching properties.
-xdf = XdfData(xdf_data_path).load(type='eeg')
+xdf = Xdf(xdf_data_path).load(type='EEG')
 ```
 
 ### Inspecting metadata for loaded streams
@@ -76,23 +95,15 @@ metadata.
 xdf.channel_metadata()     # Accepts optional stream IDs
 ```
 
-Returns a pandas DataFrame including channel metadata. With no stream
-ID arguments returns channel metadata for all loaded streams. 
-
-Multiple streams are returned as a `DataFrame` with a two-dimensional
-(`MultiIndex`) column index where `stream_id` is the first dimension.
-
-
-| channel | (1, &rsquo;label&rsquo;) | (1, &rsquo;unit&rsquo;) | (1, &rsquo;type&rsquo;) | (2, &rsquo;label&rsquo;) | (2, &rsquo;unit&rsquo;) | (2, &rsquo;type&rsquo;) |
-|---------|--------------------------|-------------------------|-------------------------|--------------------------|-------------------------|-------------------------|
-| 0       | ch:0                     | V                       | eeg                     | ch:0                     | V                       | eeg                     |
-| 1       | ch:1                     | V                       | eeg                     | ch:1                     | V                       | eeg                     |
+Returns channel metadata as a pandas DataFrame, or a dictionary of
+such DataFrames. With no stream ID arguments returns channel metadata
+for all loaded streams.
 
 ### Stream data as pandas data frames
 
 ```
 # Get stream time-series data.
-df = xdf.time_series()     # Accepts optional stream IDs
+xdf.time_series()     # Accepts optional stream IDs
 ```
 
 | sample | (1, &rsquo;ch:0&rsquo;) | (1, &rsquo;ch:1&rsquo;) | (2, &rsquo;ch:0&rsquo;) | (2, &rsquo;ch:1&rsquo;) |
@@ -109,7 +120,7 @@ df = xdf.time_series()     # Accepts optional stream IDs
 
 ```
 # Get stream time-stamps.
-df = xdf.time_stamps()     # Accepts optional stream IDs
+xdf.time_stamps()     # Accepts optional stream IDs
 ```
 
 | sample | (1, &rsquo;time\_stamp&rsquo;) | (2, &rsquo;time\_stamp&rsquo;) |
@@ -123,50 +134,3 @@ df = xdf.time_stamps()     # Accepts optional stream IDs
 | 6      | 80869.5                        | 80869.5                        |
 | 7      | 80870.5                        | 80870.5                        |
 | 8      | 80871.5                        | 80871.5                        |
-
-```
-# Get both stream time-series and time-stamps in a single data frame.
-df = xdf.data()     # Accepts optional stream IDs
-```
-
-| sample | (1, &rsquo;ch:0&rsquo;) | (1, &rsquo;ch:1&rsquo;) | (1, &rsquo;time\_stamp&rsquo;) | (2, &rsquo;ch:0&rsquo;) | (2, &rsquo;ch:1&rsquo;) | (2, &rsquo;time\_stamp&rsquo;) |
-|--------|-------------------------|-------------------------|--------------------------------|-------------------------|-------------------------|--------------------------------|
-| 0      | 2                       | 2                       | 80863.5                        | 2                       | 2                       | 80863.5                        |
-| 1      | 3                       | 3                       | 80864.5                        | 3                       | 3                       | 80864.5                        |
-| 2      | 4                       | 4                       | 80865.5                        | 4                       | 4                       | 80865.5                        |
-| 3      | 5                       | 5                       | 80866.5                        | 5                       | 5                       | 80866.5                        |
-| 4      | 6                       | 6                       | 80867.5                        | 6                       | 6                       | 80867.5                        |
-| 5      | 7                       | 7                       | 80868.5                        | 7                       | 7                       | 80868.5                        |
-| 6      | 8                       | 8                       | 80869.5                        | 8                       | 8                       | 80869.5                        |
-| 7      | 9                       | 9                       | 80870.5                        | 9                       | 9                       | 80870.5                        |
-| 8      | 5                       | 5                       | 80871.5                        | 5                       | 5                       | 80871.5                        |
-
-### Stream data MNE `RawArray`s
-
-```
-# Return stream data as an MNE RawArray.
-raw = xdf.raw_mne(1)     # Accepts optional stream IDs
-```
-
-```
-: Creating RawArray with float64 data, n_channels=2, n_times=9
-:     Range : 0 ... 8 =      0.000 ...     8.000 secs
-: Ready.
-: []
-```
-
-```
-# Multiple streams are returned as a list of RawArrays.
-raws = xdf.raw_mne()     # Default return all loaded streams.
-```
-
-```
-: Creating RawArray with float64 data, n_channels=2, n_times=9
-:     Range : 0 ... 8 =      0.000 ...     8.000 secs
-: Ready.
-: []
-: Creating RawArray with float64 data, n_channels=2, n_times=9
-:     Range : 0 ... 8 =      0.000 ...     8.000 secs
-: Ready.
-: []
-```

@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyxdftools"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
-   {name="Jamie Forth", email="j.forth@gold.ac.uk"},
+    {name="Jamie Forth", email="j.forth@gold.ac.uk"},
 ]
 description = "Simplified XDF data file processing."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 license = {text = "BSD-3-Clause"}
 
 dependencies = [
@@ -23,3 +23,7 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/jamieforth/pyxdf-tools"
 "Bug Tracker" = "https://github.com/jamieforth/pyxdf-tools/issues"
+
+[tool.pdm]
+distribution = true
+
