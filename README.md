@@ -39,7 +39,7 @@ deactivate
 ### Inspecting streams
 
 ```
-from pyxdftools import XdfData
+from pyxdftools import Xdf
 
 xdf_data_path = '<filename>.xdf'
 
