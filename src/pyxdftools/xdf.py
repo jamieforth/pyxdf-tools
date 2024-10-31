@@ -159,15 +159,10 @@ class Xdf(RawXdf):
 
     def channel_scalings(self, *stream_ids, channel_scale_field):
         """Return a dictionary of DataFrames with channel scaling values."""
-        try:
-            stream_units = self.channel_metadata(*stream_ids,
-                                                 cols=channel_scale_field,
-                                                 with_stream_id=True)
-        except KeyError as exc:
-            if self.verbose:
-                print(exc)
-            return None
-
+        stream_units = self.channel_metadata(*stream_ids,
+                                             cols=channel_scale_field,
+                                             ignore_missing_cols=True,
+                                             with_stream_id=True)
         if stream_units is not None:
             scaling = {stream_id: ch_units.apply(
                 lambda units: [1e-6 if u in microvolts else 1
@@ -395,9 +390,7 @@ class Xdf(RawXdf):
             scalings = self.channel_scalings(
                 channel_scale_field=channel_scale_field)
             if scalings:
-                data = {stream_id: ts * scalings[stream_id].loc[
-                    stream_id, channel_scale_field
-                ]
+                data = {stream_id: ts * scalings[stream_id][channel_scale_field]
                         if (stream_id in scalings
                             and not (scalings[stream_id] == 1).all().item())
                         else ts
