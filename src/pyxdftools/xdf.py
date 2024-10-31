@@ -65,7 +65,7 @@ class Xdf(RawXdf):
         return self
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, cols=None):
+    def metadata(self, *stream_ids, cols=None, ignore_missing_cols=False):
         """Return stream metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -74,10 +74,12 @@ class Xdf(RawXdf):
             *stream_ids,
             data=self._metadata,
             cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
         )
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, cols=None, with_stream_id=False):
+    def channel_metadata(self, *stream_ids, cols=None,
+                         ignore_missing_cols=False, with_stream_id=False,):
         """Return channel metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -93,12 +95,14 @@ class Xdf(RawXdf):
             *stream_ids,
             data=self._channel_metadata,
             cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
         )
         return channel_metadata
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, cols=None, with_stream_id=False):
+    def clock_offsets(self, *stream_ids, cols=None, ignore_missing_cols=False,
+                      with_stream_id=False):
         """Return clock offset data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -112,11 +116,13 @@ class Xdf(RawXdf):
             *stream_ids,
             data=self._clock_offsets,
             cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, cols=None, with_stream_id=False):
+    def time_series(self, *stream_ids, cols=None, ignore_missing_cols=False,
+                    with_stream_id=False):
         """Return stream time-series data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -130,6 +136,7 @@ class Xdf(RawXdf):
             *stream_ids,
             data=self._time_series,
             cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
         )
 
@@ -181,6 +188,7 @@ class Xdf(RawXdf):
         """
         time_series = self.time_series(*stream_ids,
                                        cols=cols,
+                                       ignore_missing_cols=ignore_missing_cols,
                                        with_stream_id=True)
         if not time_series:
             return None
@@ -225,7 +233,8 @@ class Xdf(RawXdf):
         data.attrs.update({'load_params': self.load_params})
         return data
 
-    def resample_streams(self, *stream_ids, cols=None, fs_new):
+    def resample_streams(self, *stream_ids, fs_new=512, cols=None,
+                         ignore_missing_cols=False):
         """
         Resample multiple XDF streams to a given frequency.
 
@@ -273,7 +282,8 @@ class Xdf(RawXdf):
             end_time = time_stamps.iloc[-1].item()
             len_new = int(np.ceil((end_time - start_time) * fs_new))
 
-            x_old = self.time_series(stream_id, cols=cols)
+            x_old = self.time_series(stream_id, cols=cols,
+                                     ignore_missing_cols=ignore_missing_cols)
             x_new = scipy.signal.resample(x_old, len_new, axis=0)
             resampled = np.full((n_samples, x_new.shape[1]), np.nan)
 
@@ -425,7 +435,7 @@ class Xdf(RawXdf):
         return data
 
     def _get_stream_data(self, *stream_ids, data, cols=None,
-                         with_stream_id=False):
+                         ignore_missing_cols=False, with_stream_id=False):
         if isinstance(data, dict):
             data = super()._get_stream_data(*stream_ids, data=data,
                                             with_stream_id=with_stream_id)
@@ -441,12 +451,14 @@ class Xdf(RawXdf):
             if isinstance(data, dict):
                 subset = {}
                 for stream_id in data.keys():
-                    df_cols = self._check_columns(data[stream_id], cols)
+                    df_cols = self._check_columns(data[stream_id],
+                                                  cols,
+                                                  ignore_missing_cols)
                     if df_cols:
                         subset[stream_id] = data[stream_id].loc[:, df_cols]
                 data = subset
             else:
-                df_cols = self._check_columns(data, cols)
+                df_cols = self._check_columns(data, cols, ignore_missing_cols)
                 data = data.loc[:, df_cols]
         return data
 
@@ -481,11 +493,11 @@ class Xdf(RawXdf):
             df.columns.set_names(col_index_name, inplace=True)
         return df
 
-    def _check_columns(self, df, columns):
+    def _check_columns(self, df, columns, ignore_missing):
         columns = self.remove_duplicates(columns)
         valid_cols = [col for col in columns
                       if col in df.columns]
-        if len(valid_cols) != len(columns):
+        if not ignore_missing and len(valid_cols) != len(columns):
             invalid_cols = set(columns).difference(df.columns)
             raise KeyError(f'Invalid columns: {invalid_cols}')
         return valid_cols
