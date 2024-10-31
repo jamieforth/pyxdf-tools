@@ -168,7 +168,8 @@ class Xdf(RawXdf):
                        for stream_id, ch_units in stream_units.items()}
             return scaling
 
-    def data(self, *stream_ids, cols=None, with_stream_id=False):
+    def data(self, *stream_ids, cols=None, ignore_missing_cols=False,
+             with_stream_id=False):
         """Return stream time-series and time-stamps as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.

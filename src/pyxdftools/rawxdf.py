@@ -215,6 +215,18 @@ class RawXdf(BaseXdf, Sequence):
             with_stream_id=with_stream_id,
         )
 
+    def data(self, *stream_ids, with_stream_id=True):
+        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
+        time_series = self.time_series(*stream_ids, with_stream_id=True)
+
+        data = {
+            stream_id: {'time_stamps': t, 'time_series': ts}
+            for ((stream_id, t), ts)
+            in zip(time_stamps.items(), time_series.values())
+        }
+
+        return data
+
     def single_or_multi_stream_data(self, data, with_stream_id=False):
         """Return single stream data or dictionary."""
         if len(data) == 1 and not with_stream_id:
