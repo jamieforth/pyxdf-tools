@@ -583,7 +583,8 @@ class RawXdf(BaseXdf, Sequence):
                 if key not in leaf_data:
                     leaf_data[key] = item
                 else:
-                    raise KeyError(f'Duplicate key {key}.')
+                    key = self.__ensure_unique_key(key, leaf_data)
+                    leaf_data[key] = item
             if isinstance(item, dict):
                 self.__collect_leaf_data(item, leaf_data)
             if isinstance(item, list):
@@ -592,7 +593,19 @@ class RawXdf(BaseXdf, Sequence):
                         if key not in leaf_data:
                             leaf_data[key] = item
                         else:
-                            raise KeyError(f'Duplicate key {key}.')
+                            key = self.__ensure_unique_key(key, leaf_data)
+                            leaf_data[key] = item
                     elif isinstance(item[0], dict):
                         self.__collect_leaf_data(item[0], leaf_data)
         return leaf_data
+
+    def __ensure_unique_key(self, duplicate, dictionary):
+        dups = [k for k in dictionary.keys() if k.startswith(duplicate)]
+        dups.sort(reverse=True)
+        last_dup = dups[0]
+        last_dup_split = last_dup.split('_')
+        if last_dup_split[-1].isdigit():
+            next_id = int(last_dup_split[-1]) + 1
+            return f'{duplicate}_{next_id}'
+        else:
+            return f'{duplicate}_1'
