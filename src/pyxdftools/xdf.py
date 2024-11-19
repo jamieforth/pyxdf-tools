@@ -232,7 +232,11 @@ class Xdf(RawXdf):
         ts = {stream_id:
               ts.join(time_stamps[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
-        return self.single_or_multi_stream_data(ts, with_stream_id)
+        if as_single_df:
+            ts = pd.concat(ts, axis=1).sort_index()
+            return ts
+        else:
+            return self.single_or_multi_stream_data(ts, with_stream_id)
 
     def time_stamp_summary(self, *stream_ids, exclude=[]):
         """Generate a summary of loaded time-stamp data."""
