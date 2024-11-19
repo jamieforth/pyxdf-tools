@@ -85,6 +85,7 @@ class RawXdf(BaseXdf, Sequence):
         # Reset class attributes.
         self._loaded = False
         del self._loaded_stream_ids
+        del self._load_params
 
         # Free memory
         del self._header
