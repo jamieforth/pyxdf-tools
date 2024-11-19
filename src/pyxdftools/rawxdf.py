@@ -2,44 +2,15 @@
 
 import numbers
 from collections.abc import Sequence
-from functools import wraps
-from warnings import warn
 
 import numpy as np
 import pyxdf
 import scipy
 
+from .decorators import XdfDecorators
 from .basexdf import BaseXdf
 from .errors import (NoLoadableStreamsError, XdfAlreadyLoadedError,
-                     XdfNotLoadedError, XdfStreamLoadError,
-                     XdfStreamParseError)
-
-
-class XdfDecorators:
-    """Internal class providing decorator functions."""
-
-    @staticmethod
-    def loaded(f):
-        """Decorate loading methods for error handling."""
-        @wraps(f)
-        def wrapper(self, *args, **kwargs):
-            try:
-                self._assert_loaded()
-                return f(self, *args, **kwargs)
-            except XdfNotLoadedError as exc:
-                print(exc)
-        return wrapper
-
-    @staticmethod
-    def parse(f):
-        """Decorate parsing methods for error handling."""
-        @wraps(f)
-        def wrapper(self, *args, **kwargs):
-            try:
-                return f(self, *args, **kwargs)
-            except Exception as exc:
-                raise XdfStreamParseError(exc)
-        return wrapper
+                     XdfNotLoadedError, XdfStreamLoadError)
 
 
 class RawXdf(BaseXdf, Sequence):
