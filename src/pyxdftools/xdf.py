@@ -65,7 +65,8 @@ class Xdf(RawXdf):
         return self
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, cols=None, ignore_missing_cols=False):
+    def metadata(self, *stream_ids, exclude=[], cols=None,
+                 ignore_missing_cols=False):
         """Return stream metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -73,6 +74,7 @@ class Xdf(RawXdf):
         return self._get_stream_data(
             *stream_ids,
             data=self._metadata,
+            exclude=exclude,
             cols=cols,
             ignore_missing_cols=ignore_missing_cols,
         )
@@ -103,6 +105,8 @@ class Xdf(RawXdf):
     @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, cols=None, ignore_missing_cols=False,
                       with_stream_id=False):
+    def clock_offsets(self, *stream_ids, exclude=[], cols=None,
+                      ignore_missing_cols=False, with_stream_id=False):
         """Return clock offset data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -115,14 +119,15 @@ class Xdf(RawXdf):
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_offsets,
+            exclude=exclude,
             cols=cols,
             ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, cols=None, ignore_missing_cols=False,
-                    with_stream_id=False):
+    def time_series(self, *stream_ids, exclude=[], cols=None,
+                    ignore_missing_cols=False, with_stream_id=False):
         """Return stream time-series data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -134,6 +139,7 @@ class Xdf(RawXdf):
         """
         return self._get_stream_data(
             *stream_ids,
+            exclude=exclude,
             data=self._time_series,
             cols=cols,
             ignore_missing_cols=ignore_missing_cols,
@@ -141,7 +147,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def time_stamps(self, *stream_ids, with_stream_id=False):
+    def time_stamps(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return stream time-stamps as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -153,6 +159,7 @@ class Xdf(RawXdf):
         """
         return self._get_stream_data(
             *stream_ids,
+            exclude=exclude,
             data=self._time_stamps,
             with_stream_id=with_stream_id,
         )
@@ -170,9 +177,10 @@ class Xdf(RawXdf):
                        for stream_id, ch_units in stream_units.items()}
             return scaling
 
-    def data(self, *stream_ids, cols=None, ignore_missing_cols=False,
-             with_stream_id=False):
-        """Return stream time-series and time-stamps as a DataFrame.
+    def data(self, *stream_ids, exclude=[], cols=None,
+             ignore_missing_cols=False, with_stream_id=False,
+             as_single_df=False):
+        """Return stream time-series and time-stamps as DataFrames.
 
         Select data for stream_ids or default all loaded streams.
 
@@ -182,12 +190,14 @@ class Xdf(RawXdf):
         with_stream_id=True.
         """
         time_series = self.time_series(*stream_ids,
+                                       exclude=exclude,
                                        cols=cols,
                                        ignore_missing_cols=ignore_missing_cols,
                                        with_stream_id=True)
         if not time_series:
             return None
         time_stamps = self.time_stamps(*stream_ids,
+                                       exclude=exclude,
                                        with_stream_id=True)
         if not time_stamps:
             return None
@@ -197,9 +207,13 @@ class Xdf(RawXdf):
               for stream_id, ts in time_series.items()}
         return self.single_or_multi_stream_data(ts, with_stream_id)
 
-    def time_stamp_summary(self, *stream_ids):
+    def time_stamp_summary(self, *stream_ids, exclude=[]):
         """Generate a summary of loaded time-stamp data."""
-        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
+        time_stamps = self.time_stamps(*stream_ids,
+                                       exclude=exclude,
+                                       with_stream_id=True)
+        if not time_stamps:
+            return None
         data = {}
         for stream_id, ts in time_stamps.items():
             data[stream_id] = {
@@ -218,9 +232,14 @@ class Xdf(RawXdf):
         data.attrs.update({'load_params': self.load_params})
         return data
 
-    def time_stamp_intervals(self, *stream_ids, with_stream_id=True):
+    def time_stamp_intervals(self, *stream_ids, exclude=[],
+                             with_stream_id=True):
         """Return time-stamp intervals for each stream."""
-        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
+        time_stamps = self.time_stamps(*stream_ids,
+                                       exclude=exclude,
+                                       with_stream_id=True)
+        if time_stamps is None:
+            return None
         data = {}
         for stream_id, ts in time_stamps.items():
             data[stream_id] = ts['time_stamp'].diff()
@@ -228,8 +247,8 @@ class Xdf(RawXdf):
         data.attrs.update({'load_params': self.load_params})
         return data
 
-    def resample_streams(self, *stream_ids, fs_new=512, cols=None,
-                         ignore_missing_cols=False):
+    def resample(self, *stream_ids, fs_new, exclude=[], cols=None,
+                 ignore_missing_cols=False):
         """
         Resample multiple XDF streams to a given frequency.
 
@@ -257,7 +276,9 @@ class Xdf(RawXdf):
         end_times = []
         n_total_chans = 0
         for stream_id, time_stamps in self.time_stamps(
-                *stream_ids, with_stream_id=True).items():
+                *stream_ids,
+                exclude=exclude,
+                with_stream_id=True).items():
             start_times.append(time_stamps.iloc[0].item())
             end_times.append(time_stamps.iloc[-1].item())
             if cols:
@@ -272,12 +293,16 @@ class Xdf(RawXdf):
         all_resampled = {}
 
         for stream_id, time_stamps in self.time_stamps(
-                *stream_ids, with_stream_id=True).items():
+                *stream_ids,
+                exclude=exclude,
+                with_stream_id=True).items():
             start_time = time_stamps.iloc[0].item()
             end_time = time_stamps.iloc[-1].item()
             len_new = int(np.ceil((end_time - start_time) * fs_new))
 
-            x_old = self.time_series(stream_id, cols=cols,
+            x_old = self.time_series(stream_id,
+                                     exclude=exclude,
+                                     cols=cols,
                                      ignore_missing_cols=ignore_missing_cols)
             x_new = scipy.signal.resample(x_old, len_new, axis=0)
             resampled = np.full((n_samples, x_new.shape[1]), np.nan)
@@ -427,17 +452,26 @@ class Xdf(RawXdf):
                                    columns=['time_stamp'])
         return data
 
-    def _get_stream_data(self, *stream_ids, data, cols=None,
+    def _get_stream_data(self, *stream_ids, data, exclude=[], cols=None,
                          ignore_missing_cols=False, with_stream_id=False):
         if isinstance(data, dict):
-            data = super()._get_stream_data(*stream_ids, data=data,
+            data = super()._get_stream_data(*stream_ids,
+                                            data=data,
+                                            exclude=exclude,
                                             with_stream_id=with_stream_id)
         elif isinstance(data, pd.DataFrame):
-            if stream_ids and set(self.loaded_stream_ids) != set(stream_ids):
-                data = data.loc[list(stream_ids), :]
+            if not isinstance(exclude, list):
+                exclude = [exclude]
+            if stream_ids:
+                stream_ids = set(stream_ids)
+                stream_ids = stream_ids - set(exclude)
+                if set(self.loaded_stream_ids) != stream_ids:
+                    data = data.loc[list(stream_ids), :]
+            elif len(exclude) > 0:
+                data = data.loc[~data.index.isin(exclude)]
         else:
             raise ValueError('Data should be a dictionary or DataFrame')
-        # Subset data.
+        # Subset data columns.
         if data is not None and cols is not None:
             if not isinstance(cols, list):
                 cols = [cols]

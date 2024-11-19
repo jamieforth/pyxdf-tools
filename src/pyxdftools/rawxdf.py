@@ -101,7 +101,8 @@ class RawXdf(BaseXdf, Sequence):
         return self._header
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, with_stream_id=False, flatten=False):
+    def metadata(self, *stream_ids, exclude=[], with_stream_id=False,
+                 flatten=False):
         """Return raw stream metadata.
 
         Select data for stream_ids or default all loaded streams.
@@ -116,6 +117,7 @@ class RawXdf(BaseXdf, Sequence):
         data = self._get_stream_data(
             *stream_ids,
             data=self._metadata,
+            exclude=exclude,
             with_stream_id=with_stream_id,
         )
         if flatten:
@@ -123,7 +125,7 @@ class RawXdf(BaseXdf, Sequence):
         return data
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, with_stream_id=False):
+    def channel_metadata(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream channel metadata.
 
         Select data for stream_ids or default all loaded streams.
@@ -136,11 +138,13 @@ class RawXdf(BaseXdf, Sequence):
             return self._get_stream_data(
                 *stream_ids,
                 data=self._channel_metadata,
+                exclude=exclude,
                 with_stream_id=with_stream_id,
             )
 
     @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, with_stream_id=False):
+    def clock_offsets(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream clock offsets: time and value.
 
         Select data for stream_ids or default all loaded streams.
@@ -152,11 +156,12 @@ class RawXdf(BaseXdf, Sequence):
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_offsets,
+            exclude=exclude,
             with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, with_stream_id=False):
+    def time_series(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream time-series data.
 
         Select data for stream_ids or default all loaded streams.
@@ -168,11 +173,12 @@ class RawXdf(BaseXdf, Sequence):
         return self._get_stream_data(
             *stream_ids,
             data=self._time_series,
+            exclude=exclude,
             with_stream_id=with_stream_id,
         )
 
     @XdfDecorators.loaded
-    def time_stamps(self, *stream_ids, with_stream_id=False):
+    def time_stamps(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream time-stamp data.
 
         Select data for stream_ids or default all loaded streams.
@@ -184,12 +190,25 @@ class RawXdf(BaseXdf, Sequence):
         return self._get_stream_data(
             *stream_ids,
             data=self._time_stamps,
+            exclude=exclude,
             with_stream_id=with_stream_id,
         )
 
-    def data(self, *stream_ids, with_stream_id=True):
-        time_stamps = self.time_stamps(*stream_ids, with_stream_id=True)
-        time_series = self.time_series(*stream_ids, with_stream_id=True)
+    def data(self, *stream_ids, exclude=[], with_stream_id=True):
+        """Return combined time-series and time-stamp data.
+
+        Select data for stream_ids or default all loaded streams.
+
+        Multiple streams are returned as a dictionary {stream_id: data}
+        where number of items is equal to the number of streams. Single
+        streams are returned as is unless with_stream_id=True.
+        """
+        time_stamps = self.time_stamps(*stream_ids,
+                                       exclude=exclude,
+                                       with_stream_id=True)
+        time_series = self.time_series(*stream_ids,
+                                       exclude=exclude,
+                                       with_stream_id=True)
 
         data = {
             stream_id: {'time_stamps': t, 'time_series': ts}
@@ -206,7 +225,7 @@ class RawXdf(BaseXdf, Sequence):
         else:
             return data
 
-    def resample_streams(self, *stream_ids, fs_new):
+    def resample(self, *stream_ids, fs_new, exclude=[]):
         """
         Resample multiple XDF streams to a given frequency.
 
@@ -234,7 +253,9 @@ class RawXdf(BaseXdf, Sequence):
         end_times = []
         n_total_chans = 0
         for stream_id, stream in self.time_stamps(
-                *stream_ids, with_stream_id=True).items():
+                *stream_ids,
+                exclude=exclude,
+                with_stream_id=True).items():
             start_times.append(stream[0])
             end_times.append(stream[-1])
             n_total_chans += int(self.metadata(
@@ -247,12 +268,14 @@ class RawXdf(BaseXdf, Sequence):
 
         col_start = 0
         for stream_id, stream in self.time_stamps(
-                *stream_ids, with_stream_id=True).items():
+                *stream_ids,
+                exclude=exclude,
+                with_stream_id=True).items():
             start_time = stream[0]
             end_time = stream[-1]
             len_new = int(np.ceil((end_time - start_time) * fs_new))
 
-            x_old = self.time_series(stream_id)
+            x_old = self.time_series(stream_id, exclude=exclude)
             x_new = scipy.signal.resample(x_old, len_new, axis=0)
 
             row_start = int(
@@ -410,7 +433,6 @@ class RawXdf(BaseXdf, Sequence):
             data=data,
             data_path=['clock_values'],
         )
-
         clock_offsets = {
             stream_id: {
                 'time': times,
@@ -438,14 +460,34 @@ class RawXdf(BaseXdf, Sequence):
         )
         return time_stamps
 
-    def _get_stream_data(self, *stream_ids, data, with_stream_id):
+    def _get_stream_data(self, *stream_ids, data, with_stream_id,
+                         exclude=[]):
+        if not isinstance(exclude, list):
+            exclude = [exclude]
+
         if not stream_ids or data.keys() == set(stream_ids):
-            pass
+            if len(exclude) == 0:
+                # Return data as is.
+                pass
+            else:
+                try:
+                    # Subset of loaded streams based on exclude.
+                    self._assert_stream_ids(*exclude, data=data)
+                    data = {stream_id: data
+                            for stream_id, data in data.items()
+                            if stream_id not in exclude}
+                except KeyError as exc:
+                    print(exc)
+                    return None
         else:
             try:
+                # Subset given stream_ids and exclude. Exclude overrides
+                # requested streams.
                 self._assert_stream_ids(*stream_ids, data=data)
+                self._assert_stream_ids(*exclude, data=data)
                 data = {stream_id: data[stream_id]
-                        for stream_id in stream_ids}
+                        for stream_id in stream_ids
+                        if stream_id not in set(exclude)}
             except KeyError as exc:
                 print(exc)
                 return None
