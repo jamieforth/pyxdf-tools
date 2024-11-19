@@ -95,6 +95,7 @@ class Xdf(RawXdf):
         with_stream_id=True.
         """
         if not self._channel_metadata:
+            print('No channel metadata.')
             return None
         channel_metadata = self._get_stream_data(
             *stream_ids,
@@ -133,6 +134,9 @@ class Xdf(RawXdf):
         streams. Single streams are returned as is unless
         with_stream_id=True.
         """
+        if not self._clock_offsets:
+            print('No clock-offset data.')
+            return None
         return self._get_stream_data(
             *stream_ids,
             data=self._clock_offsets,
@@ -154,6 +158,9 @@ class Xdf(RawXdf):
         streams. Single streams are returned as is unless
         with_stream_id=True.
         """
+        if not self._time_series:
+            print('No time-series data.')
+            return None
         return self._get_stream_data(
             *stream_ids,
             exclude=exclude,
@@ -174,6 +181,9 @@ class Xdf(RawXdf):
         streams. Single streams are returned as is unless
         with_stream_id=True.
         """
+        if not self._time_stamps:
+            print('No time-stamp data.')
+            return None
         return self._get_stream_data(
             *stream_ids,
             exclude=exclude,
@@ -379,13 +389,12 @@ class Xdf(RawXdf):
         """
         # Check that data streams have valid channel metadata.
         data = super()._parse_channel_metadata(data)
-        data, empty = self._remove_empty_streams(data)
-        if empty and self.verbose:
-            print(f"""No channel metadata for streams: {' '.join(str(i)
-            for i in sorted(list(empty.keys())))}""")
+        data = self._check_empty_streams(data, 'metadata')
         if not data:
-            print('No channel metadata found!')
             return None
+        # Handle streams with only a single channel.
+        data = {k: [v] if isinstance(v, dict) else v
+                for k, v in  data.items()}
         data = self._to_DataFrames(data, 'channel')
         return data
 
@@ -422,6 +431,9 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_clock_offsets(data)
+        data = self._check_empty_streams(data, 'clock-offsets')
+        if not data:
+            return None
         data = self._to_DataFrames(data, 'period')
         return data
 
@@ -442,9 +454,9 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
-        data, empty = self._remove_empty_streams(data)
-        if empty and self.verbose:
-            warn(f'No time-series data for streams: {empty}.')
+        data = self._check_empty_streams(data, 'time-series')
+        if not data:
+            return None
         data = self._to_DataFrames(data, 'sample',
                                    col_index_name='channel')
 
@@ -481,9 +493,9 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
-        data, empty = self._remove_empty_streams(data)
-        if empty and self.verbose:
-            warn(f'No time-stamp data for streams: {empty}.')
+        data = self._check_empty_streams(data, 'time-stamps')
+        if not data:
+            return None
         data = self._to_DataFrames(data,
                                    'sample',
                                    columns=['time_stamp'])
@@ -537,25 +549,40 @@ class Xdf(RawXdf):
                 for stream_id, d, in data.items()}
         return data
 
-    def _remove_empty_streams(self, data):
-        streams = {}
-        empty = {}
-        for stream_id, d in data.items():
-            if (d is None
-                or (isinstance(d, np.ndarray)
-                    and 0 in d.shape)):
-                empty[stream_id] = d
-            else:
-                streams[stream_id] = d
-        return streams, empty
-
     def _to_df(self, stream_id, data, index_name, col_index_name=None,
                columns=None):
         df = pd.DataFrame(data, columns=columns)
         df.index.set_names(index_name, inplace=True)
         if col_index_name:
             df.columns.set_names(col_index_name, inplace=True)
+        df.attrs.update({'load_params': self.load_params})
         return df
+
+    def _remove_empty_streams(self, data):
+        streams = {}
+        empty = {}
+        for stream_id, d in data.items():
+            if (d is None
+                or (isinstance(d, list)
+                    and len(d) == 0)
+                or (isinstance(d, dict)
+                    and all([len(x) == 0 for x in  d.values()]))
+                or (isinstance(d, np.ndarray)
+                    and d.size == 0)):
+                empty[stream_id] = d
+            else:
+                streams[stream_id] = d
+        return streams, empty
+
+    def _check_empty_streams(self, data, name):
+        data, empty = self._remove_empty_streams(data)
+        if empty and self.verbose:
+            print(f"""No {name} for streams: {' '.join(str(i)
+            for i in sorted(list(empty.keys())))}""")
+        if not data:
+            print(f'No {name} found!')
+            return None
+        return data
 
     def _check_columns(self, df, columns, ignore_missing):
         columns = self.remove_duplicates(columns)
