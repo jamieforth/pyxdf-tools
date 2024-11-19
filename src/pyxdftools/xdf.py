@@ -28,6 +28,9 @@ class Xdf(RawXdf):
         'v6data_port': np.int32,
         'v6service_port': np.int32,
         'effective_srate': np.float64,
+    }
+
+    _footer_types = {
         'first_timestamp': np.float64,
         'last_timestamp': np.float64,
         'sample_count': np.int64,
@@ -103,8 +106,22 @@ class Xdf(RawXdf):
         return channel_metadata
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, cols=None, ignore_missing_cols=False,
-                      with_stream_id=False):
+    def footer(self, *stream_ids, cols=None, ignore_missing_cols=False):
+        """Return stream footer metadata as a DataFrame.
+
+        Select data for stream_ids or default all loaded streams.
+        """
+        if self._footer is None:
+            print('No footer data.')
+            return None
+        return self._get_stream_data(
+            *stream_ids,
+            data=self._footer,
+            cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
+        )
+
+    @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, exclude=[], cols=None,
                       ignore_missing_cols=False, with_stream_id=False):
         """Return clock offset data as a DataFrame.
@@ -371,6 +388,26 @@ class Xdf(RawXdf):
             return None
         data = self._to_DataFrames(data, 'channel')
         return data
+
+    def _parse_footer(self, data, **kwargs):
+        """Parse footer metadata for all loaded streams into a DataFrame.
+
+        Called automatically when XDF data is loaded and the returned
+        DataFrame is cached within the instance.
+
+        This method can be implemented by a subclass for custom parsing
+        requirements.
+
+        Returns a dictionary {stream_id: DataFrame} where number of
+        items is equal to the number of streams.
+        """
+        data = super()._parse_footer(data)
+        data = self._check_empty_streams(data, 'footer')
+        if not data:
+            return None
+        df = pd.DataFrame(data).T
+        df = df.astype(self._footer_types)
+        return df
 
     def _parse_clock_offsets(self, data, **kwargs):
         """Parse clock offsets for all loaded streams into a DataFrame.

@@ -91,6 +91,7 @@ class RawXdf(BaseXdf, Sequence):
         del self._header
         del self._metadata
         del self._channel_metadata
+        del self._footer
         del self._clock_offsets
         del self._time_series
         del self._time_stamps
@@ -143,7 +144,24 @@ class RawXdf(BaseXdf, Sequence):
             )
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, with_stream_id=False):
+    def footer(self, *stream_ids, exclude=[], with_stream_id=False):
+        """Return raw stream footer metadata.
+
+        Select data for stream_ids or default all loaded streams.
+
+        Multiple streams are returned as a dictionary {stream_id: data}
+        where number of items is equal to the number of streams. Single
+        streams are returned as is unless with_stream_id=True.
+        """
+        if self._footer:
+            return self._get_stream_data(
+                *stream_ids,
+                data=self._footer,
+                exclude=exclude,
+                with_stream_id=with_stream_id,
+            )
+
+    @XdfDecorators.loaded
     def clock_offsets(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream clock offsets: time and value.
 
@@ -338,11 +356,11 @@ class RawXdf(BaseXdf, Sequence):
         self._metadata = self._parse_metadata(streams, **parse_kwargs)
         self._channel_metadata = self._parse_channel_metadata(streams,
                                                               **parse_kwargs)
+        self._footer = self._parse_footer(streams, **parse_kwargs)
         self._clock_offsets = self._parse_clock_offsets(streams,
                                                         **parse_kwargs)
         self._time_series = self._parse_time_series(streams, **parse_kwargs)
         self._time_stamps = self._parse_time_stamps(streams, **parse_kwargs)
-
         return self
 
     def _find_loadable_streams(self, select_streams=None, **kwargs):
@@ -379,9 +397,6 @@ class RawXdf(BaseXdf, Sequence):
     @XdfDecorators.parse
     def _parse_metadata(self, data, flatten=False, pop_singleton_lists=True,
                         **kwargs):
-        # Merge together 'info' and 'footer' metadata, excluding
-        # specific list data structures, e.g. channel metadata and clock
-        # offset data.
         metadata = self.__collect_stream_data(
             data=data,
             data_path=['info'],
@@ -389,25 +404,6 @@ class RawXdf(BaseXdf, Sequence):
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
         )
-        footer = self.__collect_stream_data(
-            data=data,
-            data_path=['footer', 'info'],
-            exclude=['clock_offsets'],
-            flatten=flatten,
-            pop_singleton_lists=pop_singleton_lists,
-        )
-
-        if metadata.keys() != footer.keys():
-            warn('Mismatched metadata and footer streams. \n'
-                 f'Metadata streams: {list(metadata.keys())}, '
-                 f'Footer streams: {list(footer.keys())}')
-
-        metadata = {
-            stream_id: {
-                **metadata[stream_id], **footer[stream_id]
-            }
-            for stream_id in metadata
-        }
         return metadata
 
     @XdfDecorators.parse
@@ -421,6 +417,19 @@ class RawXdf(BaseXdf, Sequence):
             allow_none=True,
         )
         return ch_metadata
+
+    @XdfDecorators.parse
+    def _parse_footer(self, data, flatten=False, pop_singleton_lists=True,
+                      **kwargs):
+        footer = self.__collect_stream_data(
+            data=data,
+            data_path=['footer', 'info'],
+            exclude=['clock_offsets'],
+            flatten=flatten,
+            pop_singleton_lists=pop_singleton_lists,
+            allow_none=True,
+        )
+        return footer
 
     @XdfDecorators.parse
     def _parse_clock_offsets(self, data, **kwargs):
