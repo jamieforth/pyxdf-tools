@@ -8,7 +8,7 @@ version = "0.1.0"
 authors = [
     {name="Jamie Forth", email="j.forth@gold.ac.uk"},
 ]
-description = "Simplified XDF data file processing."
+description = "Tools for XDF data file processing."
 readme = "README.md"
 requires-python = "==3.11.*"
 license = {text = "BSD-3-Clause"}
@@ -27,3 +27,8 @@ dependencies = [
 [tool.pdm]
 distribution = true
 
+
+[dependency-groups]
+dev = [
+    "python-lsp-server[all]>=1.12.0",
+]

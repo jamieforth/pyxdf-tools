@@ -82,6 +82,10 @@ class BaseXdf:
         """Return loaded stream channel metadata."""
         raise NotImplementedError()
 
+    def footer(self):
+        """Return loaded stream footer metadata."""
+        raise NotImplementedError()
+
     def clock_offsets(self):
         """Return loaded stream clock offsets."""
         raise NotImplementedError()
