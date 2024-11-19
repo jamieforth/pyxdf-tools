@@ -98,6 +98,14 @@ class BaseXdf:
         """Return loaded stream data time-stamps."""
         raise NotImplementedError()
 
+    def data(self):
+        """Return combined time-series and time-stamp data."""
+        raise NotImplementedError()
+
+    def resample(self):
+        """Resample multiple XDF streams to a given frequency."""
+        raise NotImplementedError()
+
     # Name-mangled private methods to be used only by this class.
 
     def __resolve_streams(self):
