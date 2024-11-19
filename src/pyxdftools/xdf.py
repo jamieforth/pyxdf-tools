@@ -335,7 +335,7 @@ class Xdf(RawXdf):
 
         all_resampled = pd.concat(all_resampled, axis='columns')
         all_resampled.columns.rename('stream', level=0, inplace=True)
-
+        all_resampled.attrs.update({'load_params': self.load_params})
         return all_resampled, first_time
 
     # Non public methods.
