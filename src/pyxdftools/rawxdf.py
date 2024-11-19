@@ -350,6 +350,8 @@ class RawXdf(BaseXdf, Sequence):
         self._load_params = {k: v
                              for (k, v) in xdf_kwargs.items()
                              if k not in ['verbose']}
+        if select_streams is not None:
+            self._load_params['select_streams'] = select_streams
 
         # Parse XDF into separate structures.
         self._header = self._parse_header(header, **parse_kwargs)
