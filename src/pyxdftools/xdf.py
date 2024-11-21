@@ -84,7 +84,8 @@ class Xdf(RawXdf):
 
     @XdfDecorators.loaded
     def channel_metadata(self, *stream_ids, exclude=[], cols=None,
-                         ignore_missing_cols=False, with_stream_id=False,):
+                         ignore_missing_cols=False, with_stream_id=False,
+                         concat=False):
         """Return channel metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -105,6 +106,8 @@ class Xdf(RawXdf):
             ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
         )
+        if isinstance(channel_metadata, dict) and concat:
+            channel_metadata = pd.concat(channel_metadata, axis=1)
         return channel_metadata
 
     @XdfDecorators.loaded
@@ -209,7 +212,7 @@ class Xdf(RawXdf):
 
     def data(self, *stream_ids, exclude=[], cols=None,
              ignore_missing_cols=False, with_stream_id=False,
-             as_single_df=False):
+             concat=False):
         """Return stream time-series and time-stamps as DataFrames.
 
         Select data for stream_ids or default all loaded streams.
@@ -235,7 +238,7 @@ class Xdf(RawXdf):
         ts = {stream_id:
               ts.join(time_stamps[stream_id]).set_index('time_stamp')
               for stream_id, ts in time_series.items()}
-        if as_single_df:
+        if concat:
             ts = pd.concat(ts, axis=1).sort_index()
             return ts
         else:
