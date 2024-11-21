@@ -83,7 +83,7 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, cols=None,
+    def channel_metadata(self, *stream_ids, exclude=[], cols=None,
                          ignore_missing_cols=False, with_stream_id=False,):
         """Return channel metadata as a DataFrame.
 
@@ -100,6 +100,7 @@ class Xdf(RawXdf):
         channel_metadata = self._get_stream_data(
             *stream_ids,
             data=self._channel_metadata,
+            exclude=exclude,
             cols=cols,
             ignore_missing_cols=ignore_missing_cols,
             with_stream_id=with_stream_id,
@@ -107,7 +108,8 @@ class Xdf(RawXdf):
         return channel_metadata
 
     @XdfDecorators.loaded
-    def footer(self, *stream_ids, cols=None, ignore_missing_cols=False):
+    def footer(self, *stream_ids, exclude=[], cols=None,
+               ignore_missing_cols=False):
         """Return stream footer metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -118,6 +120,7 @@ class Xdf(RawXdf):
         return self._get_stream_data(
             *stream_ids,
             data=self._footer,
+            exclude=exclude,
             cols=cols,
             ignore_missing_cols=ignore_missing_cols,
         )
