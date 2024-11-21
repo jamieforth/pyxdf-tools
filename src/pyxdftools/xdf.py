@@ -94,6 +94,10 @@ class Xdf(RawXdf):
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
         with_stream_id=True.
+
+        When concat=True return data concatenated into a single
+        DataFrame, where the number of rows will equal the maximum
+        number of channels across all devices.
         """
         if not self._channel_metadata:
             print('No channel metadata.')
@@ -221,6 +225,13 @@ class Xdf(RawXdf):
         DataFrame} where number of items is equal to the number of
         streams. Single streams are returned as is unless
         with_stream_id=True.
+
+        When concat=True return data concatenated into a single
+        DataFrame. Warning - this can generate very large DataFrames as
+        the total number of rows will equal the total number of samples
+        across all streams. Every sample is indexed by its own
+        timestamp. This does not align samples to a common time index,
+        for that see `resample`.
         """
         time_series = self.time_series(*stream_ids,
                                        exclude=exclude,
