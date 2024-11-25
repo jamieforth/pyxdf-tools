@@ -588,7 +588,7 @@ class RawXdf(BaseXdf, Sequence):
             return {k: self.__pop_singleton_lists(v)
                     for k, v in data.items()}
         elif isinstance(data, list):
-            if len(data) == 1:
+            if len(data) == 1 and isinstance(data[0], str):
                 return self.__pop_singleton_lists(data[0])
             else:
                 return [self.__pop_singleton_lists(item) for item in data]
