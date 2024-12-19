@@ -82,6 +82,10 @@ class BaseXdf:
         """Return loaded stream extensible desc metadata."""
         raise NotImplementedError()
 
+    def segments(self):
+        """Return loaded stream segments."""
+        raise NotImplementedError()
+
     def channel_metadata(self):
         """Return loaded stream channel metadata."""
         raise NotImplementedError()
