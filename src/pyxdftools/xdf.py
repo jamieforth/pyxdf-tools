@@ -475,7 +475,7 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
-        data = self._check_empty_streams(data, 'time-series')
+        #data = self._check_empty_streams(data, 'time-series')
         if not data:
             return None
         data = self._to_DataFrames(data, 'sample',
@@ -514,7 +514,7 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
-        data = self._check_empty_streams(data, 'time-stamps')
+        #data = self._check_empty_streams(data, 'time-stamps')
         if not data:
             return None
         data = self._to_DataFrames(data,
