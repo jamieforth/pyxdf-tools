@@ -389,7 +389,7 @@ class Xdf(RawXdf):
 
         Returns a DataFrame.
         """
-        data = super()._parse_metadata(data, flatten=True)
+        data = super()._parse_metadata(data)
         df = pd.DataFrame(data).T
         df = df.astype(self._metadata_types)
         assert all(df.index == df['stream_id'])
@@ -415,7 +415,7 @@ class Xdf(RawXdf):
             return None
         # Handle streams with only a single channel.
         data = {k: [v] if isinstance(v, dict) else v
-                for k, v in  data.items()}
+                for k, v in data.items()}
         data = self._to_DataFrames(data, 'channel')
         return data
 

@@ -103,7 +103,7 @@ class RawXdf(BaseXdf, Sequence):
 
     @XdfDecorators.loaded
     def metadata(self, *stream_ids, exclude=[], with_stream_id=False,
-                 flatten=False):
+                 desc=False, flatten=False):
         """Return raw stream metadata.
 
         Select data for stream_ids or default all loaded streams.
@@ -121,8 +121,28 @@ class RawXdf(BaseXdf, Sequence):
             exclude=exclude,
             with_stream_id=with_stream_id,
         )
+        if desc:
+            data = {stream_id: d | self.desc(stream_id)
+                    if self.desc(stream_id) else d
+                    for stream_id, d in data.items()}
         if flatten:
             data = self.__flatten(data)
+        return data
+
+    @XdfDecorators.loaded
+    def desc(self, *stream_ids, exclude=[], with_stream_id=False):
+        """Return custom stream metadata.
+
+        Multiple streams are returned as a dictionary {stream_id: data}
+        where number of items is equal to the number of streams. Single
+        streams are returned as is unless with_stream_id=True.
+        """
+        data = self._get_stream_data(
+            *stream_ids,
+            data=self._desc,
+            exclude=exclude,
+            with_stream_id=with_stream_id,
+        )
         return data
 
     @XdfDecorators.loaded
@@ -356,6 +376,7 @@ class RawXdf(BaseXdf, Sequence):
         # Parse XDF into separate structures.
         self._header = self._parse_header(header, **parse_kwargs)
         self._metadata = self._parse_metadata(streams, **parse_kwargs)
+        self._desc = self._parse_desc(streams, **parse_kwargs)
         self._channel_metadata = self._parse_channel_metadata(streams,
                                                               **parse_kwargs)
         self._footer = self._parse_footer(streams, **parse_kwargs)
@@ -402,11 +423,23 @@ class RawXdf(BaseXdf, Sequence):
         metadata = self.__collect_stream_data(
             data=data,
             data_path=['info'],
-            exclude=['channels'],
+            exclude=['desc', 'segments'],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
         )
         return metadata
+
+    @XdfDecorators.parse
+    def _parse_desc(self, data, flatten=False, pop_singleton_lists=True,
+                    **kwargs):
+        desc = self.__collect_stream_data(
+            data=data,
+            data_path=['info', 'desc'],
+            exclude=['channels'],
+            flatten=flatten,
+            pop_singleton_lists=pop_singleton_lists,
+        )
+        return desc
 
     @XdfDecorators.parse
     def _parse_channel_metadata(self, data, pop_singleton_lists=True,
@@ -557,7 +590,12 @@ class RawXdf(BaseXdf, Sequence):
         for key in data_path:
             if data and key in data.keys():
                 data = data[key]
-                if isinstance(data, list) and len(data) == 1:
+                if (
+                        isinstance(data, list)
+                        and len(data) == 1
+                        and (isinstance(data[0], dict)
+                             or data[0] is None)
+                ):
                     data = data[0]
             else:
                 stream_id = self.__get_stream_id(stream)
