@@ -587,7 +587,7 @@ class Xdf(RawXdf):
                 or (isinstance(d, list)
                     and len(d) == 0)
                 or (isinstance(d, dict)
-                    and all([len(x) == 0 for x in  d.values()]))
+                    and all([len(x) == 0 for x in d.values()]))
                 or (isinstance(d, np.ndarray)
                     and d.size == 0)):
                 empty[stream_id] = d
