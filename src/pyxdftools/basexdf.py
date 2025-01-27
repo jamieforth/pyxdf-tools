@@ -86,6 +86,10 @@ class BaseXdf:
         """Return loaded stream segments."""
         raise NotImplementedError()
 
+    def clock_segments(self):
+        """Return loaded stream clock segments."""
+        raise NotImplementedError()
+
     def channel_metadata(self):
         """Return loaded stream channel metadata."""
         raise NotImplementedError()

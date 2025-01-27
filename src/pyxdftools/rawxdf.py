@@ -162,6 +162,22 @@ class RawXdf(BaseXdf, Sequence):
         return data
 
     @XdfDecorators.loaded
+    def clock_segments(self, *stream_ids, exclude=[], with_stream_id=False):
+        """Return stream clock segments.
+
+        Multiple streams are returned as a dictionary {stream_id: data}
+        where number of items is equal to the number of streams. Single
+        streams are returned as is unless with_stream_id=True.
+        """
+        data = self._get_stream_data(
+            *stream_ids,
+            data=self._clock_segments,
+            exclude=exclude,
+            with_stream_id=with_stream_id,
+        )
+        return data
+
+    @XdfDecorators.loaded
     def channel_metadata(self, *stream_ids, exclude=[], with_stream_id=False):
         """Return raw stream channel metadata.
 
@@ -394,6 +410,7 @@ class RawXdf(BaseXdf, Sequence):
         self._metadata = self._parse_metadata(streams, **parse_kwargs)
         self._desc = self._parse_desc(streams, **parse_kwargs)
         self._segments = self._parse_segments(streams, **parse_kwargs)
+        self._clock_segments = self._parse_clock_segments(streams, **parse_kwargs)
         self._channel_metadata = self._parse_channel_metadata(streams,
                                                               **parse_kwargs)
         self._footer = self._parse_footer(streams, **parse_kwargs)
@@ -440,7 +457,7 @@ class RawXdf(BaseXdf, Sequence):
         metadata = self.__collect_stream_data(
             data=data,
             data_path=['info'],
-            exclude=['desc', 'segments'],
+            exclude=['desc', 'segments', 'clock_segments'],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
         )
@@ -463,6 +480,14 @@ class RawXdf(BaseXdf, Sequence):
         segments = self.__collect_stream_data(
             data=data,
             data_path=['info', 'segments'],
+        )
+        return segments
+
+    @XdfDecorators.parse
+    def _parse_clock_segments(self, data, **kwargs):
+        segments = self.__collect_stream_data(
+            data=data,
+            data_path=['info', 'clock_segments'],
         )
         return segments
 
