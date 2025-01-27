@@ -375,7 +375,8 @@ class Xdf(RawXdf):
         """Convert raw header into a DataFrame."""
         header = super()._parse_header(data)
         header = pd.Series(header)
-        header['datetime'] = pd.to_datetime(header['datetime'])
+        if 'datetime' in header:
+            header['datetime'] = pd.to_datetime(header['datetime'])
         return header
 
     def _parse_metadata(self, data, **kwargs):
