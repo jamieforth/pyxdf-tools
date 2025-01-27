@@ -480,6 +480,7 @@ class RawXdf(BaseXdf, Sequence):
         segments = self.__collect_stream_data(
             data=data,
             data_path=['info', 'segments'],
+            allow_none=True,
         )
         return segments
 
@@ -488,6 +489,7 @@ class RawXdf(BaseXdf, Sequence):
         segments = self.__collect_stream_data(
             data=data,
             data_path=['info', 'clock_segments'],
+            allow_none=True,
         )
         return segments
 
