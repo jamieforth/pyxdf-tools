@@ -411,7 +411,7 @@ class Xdf(RawXdf):
         """
         # Check that data streams have valid channel metadata.
         data = super()._parse_channel_metadata(data)
-        data = self._check_empty_streams(data, 'metadata')
+        data = self._check_empty_streams(data, 'channel metadata')
         if not data:
             return None
         # Handle streams with only a single channel.
