@@ -392,7 +392,12 @@ class Xdf(RawXdf):
         """
         data = super()._parse_metadata(data)
         df = pd.DataFrame(data).T
-        df = df.astype(self._metadata_types)
+        try:
+            df = df.astype(self._metadata_types)
+        except KeyError:
+            # Don't throw an error if metadata does not contain all
+            # columns specified in metadata types.
+            pass
         assert all(df.index == df['stream_id'])
         df.set_index('stream_id', inplace=True)
         return df
