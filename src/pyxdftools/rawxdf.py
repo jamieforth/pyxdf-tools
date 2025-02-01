@@ -475,6 +475,7 @@ class RawXdf(BaseXdf, Sequence):
             exclude=['channels'],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
+            allow_none=True,
         )
         return desc
 
