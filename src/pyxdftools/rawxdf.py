@@ -90,6 +90,9 @@ class RawXdf(BaseXdf, Sequence):
         # Free memory
         del self._header
         del self._metadata
+        del self._desc
+        del self._segments
+        del self._clock_segments
         del self._channel_metadata
         del self._footer
         del self._clock_offsets
