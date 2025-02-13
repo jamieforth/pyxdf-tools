@@ -31,4 +31,5 @@ distribution = true
 [dependency-groups]
 dev = [
     "python-lsp-server[all]>=1.12.0",
+    "pytest>=8.3.4",
 ]
