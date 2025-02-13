@@ -14,19 +14,22 @@ requires-python = "==3.11.*"
 license = {text = "BSD-3-Clause"}
 
 dependencies = [
-    "mne",
-    "pyxdf",
-    "pandas[performance]",
-    "scipy",
+    "pyxdf>=1.17.0",
+    "pandas[performance]>=2.2.3",
+    "scipy>=1.15.1",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/jamieforth/pyxdf-tools"
 "Bug Tracker" = "https://github.com/jamieforth/pyxdf-tools/issues"
 
+[project.optional-dependencies]
+mne = [
+    "mne>=1.9.0",
+]
+
 [tool.pdm]
 distribution = true
-
 
 [dependency-groups]
 dev = [
