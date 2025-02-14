@@ -458,9 +458,6 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_clock_offsets(data)
-        data = self._check_empty_streams(data, 'clock-offsets')
-        if not data:
-            return None
         data = self._to_DataFrames(data, 'period')
         return data
 
@@ -481,9 +478,6 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
-        #data = self._check_empty_streams(data, 'time-series')
-        if not data:
-            return None
         data = self._to_DataFrames(data, 'sample',
                                    col_index_name='channel')
 
@@ -520,9 +514,6 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
-        #data = self._check_empty_streams(data, 'time-stamps')
-        if not data:
-            return None
         data = self._to_DataFrames(data,
                                    'sample',
                                    columns=['time_stamp'])
