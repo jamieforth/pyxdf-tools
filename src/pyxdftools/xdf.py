@@ -21,19 +21,19 @@ class Xdf(RawXdf):
 
     # Data types for XDF metadata.
     _metadata_types = {
-        'channel_count': np.int16,
-        'nominal_srate': np.float64,
-        'v4data_port': np.int32,
-        'v4service_port': np.int32,
-        'v6data_port': np.int32,
-        'v6service_port': np.int32,
-        'effective_srate': np.float64,
+        "channel_count": np.int16,
+        "nominal_srate": np.float64,
+        "v4data_port": np.int32,
+        "v4service_port": np.int32,
+        "v6data_port": np.int32,
+        "v6service_port": np.int32,
+        "effective_srate": np.float64,
     }
 
     _footer_types = {
-        'first_timestamp': np.float64,
-        'last_timestamp': np.float64,
-        'sample_count': np.int64,
+        "first_timestamp": np.float64,
+        "last_timestamp": np.float64,
+        "sample_count": np.int64,
     }
 
     def __init__(self, filename, verbose=False):
@@ -46,12 +46,17 @@ class Xdf(RawXdf):
         Results are not cached - the data is always read from file.
         """
         streams = pd.DataFrame(super().resolve_streams())
-        streams.set_index('stream_id', inplace=True)
+        streams.set_index("stream_id", inplace=True)
         streams.sort_index(inplace=True)
         return streams
 
-    def load(self, *select_streams, channel_scale_field=None,
-             channel_name_field=None, **kwargs):
+    def load(
+        self,
+        *select_streams,
+        channel_scale_field=None,
+        channel_name_field=None,
+        **kwargs,
+    ):
         """Load XDF data from file using pyxdf.load_xdf().
 
         Any pyxdf.load_xdf() kwargs provided will be passed to that
@@ -59,17 +64,18 @@ class Xdf(RawXdf):
         and will be passed to parsing methods.
         """
         try:
-            self._load(*select_streams,
-                       channel_scale_field=channel_scale_field,
-                       channel_name_field=channel_name_field,
-                       **kwargs)
+            self._load(
+                *select_streams,
+                channel_scale_field=channel_scale_field,
+                channel_name_field=channel_name_field,
+                **kwargs,
+            )
         except (NoLoadableStreamsError, XdfAlreadyLoadedError) as exc:
             print(exc)
         return self
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, exclude=[], cols=None,
-                 ignore_missing_cols=False):
+    def metadata(self, *stream_ids, exclude=[], cols=None, ignore_missing_cols=False):
         """Return stream metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -83,9 +89,15 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def channel_metadata(self, *stream_ids, exclude=[], cols=None,
-                         ignore_missing_cols=False, with_stream_id=False,
-                         concat=False):
+    def channel_metadata(
+        self,
+        *stream_ids,
+        exclude=[],
+        cols=None,
+        ignore_missing_cols=False,
+        with_stream_id=False,
+        concat=False,
+    ):
         """Return channel metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -99,7 +111,7 @@ class Xdf(RawXdf):
         DataFrame along columns.
         """
         if not self._channel_metadata:
-            print('No channel metadata.')
+            print("No channel metadata.")
             return None
         channel_metadata = self._get_stream_data(
             *stream_ids,
@@ -114,14 +126,13 @@ class Xdf(RawXdf):
         return channel_metadata
 
     @XdfDecorators.loaded
-    def footer(self, *stream_ids, exclude=[], cols=None,
-               ignore_missing_cols=False):
+    def footer(self, *stream_ids, exclude=[], cols=None, ignore_missing_cols=False):
         """Return stream footer metadata as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
         """
         if self._footer is None:
-            print('No footer data.')
+            print("No footer data.")
             return None
         return self._get_stream_data(
             *stream_ids,
@@ -132,8 +143,14 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def clock_offsets(self, *stream_ids, exclude=[], cols=None,
-                      ignore_missing_cols=False, with_stream_id=False):
+    def clock_offsets(
+        self,
+        *stream_ids,
+        exclude=[],
+        cols=None,
+        ignore_missing_cols=False,
+        with_stream_id=False,
+    ):
         """Return clock offset data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -144,7 +161,7 @@ class Xdf(RawXdf):
         with_stream_id=True.
         """
         if not self._clock_offsets:
-            print('No clock-offset data.')
+            print("No clock-offset data.")
             return None
         return self._get_stream_data(
             *stream_ids,
@@ -156,8 +173,14 @@ class Xdf(RawXdf):
         )
 
     @XdfDecorators.loaded
-    def time_series(self, *stream_ids, exclude=[], cols=None,
-                    ignore_missing_cols=False, with_stream_id=False):
+    def time_series(
+        self,
+        *stream_ids,
+        exclude=[],
+        cols=None,
+        ignore_missing_cols=False,
+        with_stream_id=False,
+    ):
         """Return stream time-series data as a DataFrame.
 
         Select data for stream_ids or default all loaded streams.
@@ -168,7 +191,7 @@ class Xdf(RawXdf):
         with_stream_id=True.
         """
         if not self._time_series:
-            print('No time-series data.')
+            print("No time-series data.")
             return None
         return self._get_stream_data(
             *stream_ids,
@@ -191,7 +214,7 @@ class Xdf(RawXdf):
         with_stream_id=True.
         """
         if not self._time_stamps:
-            print('No time-stamp data.')
+            print("No time-stamp data.")
             return None
         return self._get_stream_data(
             *stream_ids,
@@ -202,20 +225,30 @@ class Xdf(RawXdf):
 
     def channel_scalings(self, *stream_ids, channel_scale_field):
         """Return a dictionary of DataFrames with channel scaling values."""
-        stream_units = self.channel_metadata(*stream_ids,
-                                             cols=channel_scale_field,
-                                             ignore_missing_cols=True,
-                                             with_stream_id=True)
+        stream_units = self.channel_metadata(
+            *stream_ids,
+            cols=channel_scale_field,
+            ignore_missing_cols=True,
+            with_stream_id=True,
+        )
         if stream_units is not None:
-            scaling = {stream_id: ch_units.apply(
-                lambda units: [1e-6 if u in microvolts else 1
-                               for u in units])
-                       for stream_id, ch_units in stream_units.items()}
+            scaling = {
+                stream_id: ch_units.apply(
+                    lambda units: [1e-6 if u in microvolts else 1 for u in units]
+                )
+                for stream_id, ch_units in stream_units.items()
+            }
             return scaling
 
-    def data(self, *stream_ids, exclude=[], cols=None,
-             ignore_missing_cols=False, with_stream_id=False,
-             concat=False):
+    def data(
+        self,
+        *stream_ids,
+        exclude=[],
+        cols=None,
+        ignore_missing_cols=False,
+        with_stream_id=False,
+        concat=False,
+    ):
         """Return stream time-series and time-stamps as DataFrames.
 
         Select data for stream_ids or default all loaded streams.
@@ -233,22 +266,25 @@ class Xdf(RawXdf):
         This does not align samples to a common time index, for that see
         `resample`.
         """
-        time_series = self.time_series(*stream_ids,
-                                       exclude=exclude,
-                                       cols=cols,
-                                       ignore_missing_cols=ignore_missing_cols,
-                                       with_stream_id=True)
+        time_series = self.time_series(
+            *stream_ids,
+            exclude=exclude,
+            cols=cols,
+            ignore_missing_cols=ignore_missing_cols,
+            with_stream_id=True,
+        )
         if not time_series:
             return None
-        time_stamps = self.time_stamps(*stream_ids,
-                                       exclude=exclude,
-                                       with_stream_id=True)
+        time_stamps = self.time_stamps(
+            *stream_ids, exclude=exclude, with_stream_id=True
+        )
         if not time_stamps:
             return None
 
-        ts = {stream_id:
-              ts.join(time_stamps[stream_id]).set_index('time_stamp')
-              for stream_id, ts in time_series.items()}
+        ts = {
+            stream_id: ts.join(time_stamps[stream_id]).set_index("time_stamp")
+            for stream_id, ts in time_series.items()
+        }
         if concat:
             ts = pd.concat(ts, axis=1).sort_index()
             return ts
@@ -257,42 +293,39 @@ class Xdf(RawXdf):
 
     def time_stamp_summary(self, *stream_ids, exclude=[]):
         """Generate a summary of loaded time-stamp data."""
-        time_stamps = self.time_stamps(*stream_ids,
-                                       exclude=exclude,
-                                       with_stream_id=True)
+        time_stamps = self.time_stamps(
+            *stream_ids, exclude=exclude, with_stream_id=True
+        )
         if not time_stamps:
             return None
         data = {}
         for stream_id, ts in time_stamps.items():
             data[stream_id] = {
-                'sample_count': len(ts),
-                'first_timestamp': ts.iloc[0, 0],
-                'last_timestamp': ts.iloc[-1, 0],
+                "sample_count": len(ts),
+                "first_timestamp": ts.iloc[0, 0],
+                "last_timestamp": ts.iloc[-1, 0],
             }
         data = pd.DataFrame(data).T
-        data.index.rename('stream_id', inplace=True)
-        data['sample_count'] = data['sample_count'].astype(int)
-        data['duration_sec'] = (data['last_timestamp'] -
-                                data['first_timestamp'])
-        data['duration_min'] = data['duration_sec'] / 60
-        data['effective_srate'] = 1 / (data['duration_sec'] /
-                                       data['sample_count'])
-        data.attrs.update({'load_params': self.load_params})
+        data.index.rename("stream_id", inplace=True)
+        data["sample_count"] = data["sample_count"].astype(int)
+        data["duration_sec"] = data["last_timestamp"] - data["first_timestamp"]
+        data["duration_min"] = data["duration_sec"] / 60
+        data["effective_srate"] = 1 / (data["duration_sec"] / data["sample_count"])
+        data.attrs.update({"load_params": self.load_params})
         return data
 
-    def time_stamp_intervals(self, *stream_ids, exclude=[],
-                             with_stream_id=True):
+    def time_stamp_intervals(self, *stream_ids, exclude=[], with_stream_id=True):
         """Return time-stamp intervals for each stream."""
-        time_stamps = self.time_stamps(*stream_ids,
-                                       exclude=exclude,
-                                       with_stream_id=True)
+        time_stamps = self.time_stamps(
+            *stream_ids, exclude=exclude, with_stream_id=True
+        )
         if time_stamps is None:
             return None
         data = {}
         for stream_id, ts in time_stamps.items():
-            data[stream_id] = ts['time_stamp'].diff()
+            data[stream_id] = ts["time_stamp"].diff()
         data = pd.DataFrame(data)
-        data.attrs.update({'load_params': self.load_params})
+        data.attrs.update({"load_params": self.load_params})
         return data
 
     def resample(self, *stream_ids, fs_new, exclude=[], cols=None,
@@ -324,16 +357,14 @@ class Xdf(RawXdf):
         end_times = []
         n_total_chans = 0
         for stream_id, time_stamps in self.time_stamps(
-                *stream_ids,
-                exclude=exclude,
-                with_stream_id=True).items():
+            *stream_ids, exclude=exclude, with_stream_id=True
+        ).items():
             start_times.append(time_stamps.iloc[0].item())
             end_times.append(time_stamps.iloc[-1].item())
             if cols:
                 n_total_chans += len(cols)
             else:
-                n_total_chans += self.metadata(
-                    stream_id)['channel_count'].iloc[0]
+                n_total_chans += self.metadata(stream_id)['channel_count'].item()
         first_time = min(start_times)
         last_time = max(end_times)
 
@@ -341,9 +372,8 @@ class Xdf(RawXdf):
         all_resampled = {}
 
         for stream_id, time_stamps in self.time_stamps(
-                *stream_ids,
-                exclude=exclude,
-                with_stream_id=True).items():
+            *stream_ids, exclude=exclude, with_stream_id=True
+        ).items():
             start_time = time_stamps.iloc[0].item()
             end_time = time_stamps.iloc[-1].item()
             len_new = int(np.ceil((end_time - start_time) * fs_new))
@@ -375,8 +405,8 @@ class Xdf(RawXdf):
         """Convert raw header into a DataFrame."""
         header = super()._parse_header(data)
         header = pd.Series(header)
-        if 'datetime' in header:
-            header['datetime'] = pd.to_datetime(header['datetime'])
+        if "datetime" in header:
+            header["datetime"] = pd.to_datetime(header["datetime"])
         return header
 
     def _parse_metadata(self, data, **kwargs):
@@ -398,8 +428,8 @@ class Xdf(RawXdf):
             # Don't throw an error if metadata does not contain all
             # columns specified in metadata types.
             pass
-        assert all(df.index == df['stream_id'])
-        df.set_index('stream_id', inplace=True)
+        assert all(df.index == df["stream_id"])
+        df.set_index("stream_id", inplace=True)
         return df
 
     def _parse_channel_metadata(self, data, **kwargs):
@@ -416,13 +446,12 @@ class Xdf(RawXdf):
         """
         # Check that data streams have valid channel metadata.
         data = super()._parse_channel_metadata(data)
-        data = self._check_empty_streams(data, 'channel metadata')
+        data = self._check_empty_streams(data, "channel metadata")
         if not data:
             return None
         # Handle streams with only a single channel.
-        data = {k: [v] if isinstance(v, dict) else v
-                for k, v in data.items()}
-        data = self._to_DataFrames(data, 'channel')
+        data = {k: [v] if isinstance(v, dict) else v for k, v in data.items()}
+        data = self._to_DataFrames(data, "channel")
         return data
 
     def _parse_footer(self, data, **kwargs):
@@ -438,7 +467,7 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_footer(data)
-        data = self._check_empty_streams(data, 'footer')
+        data = self._check_empty_streams(data, "footer")
         if not data:
             return None
         df = pd.DataFrame(data).T
@@ -458,11 +487,12 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_clock_offsets(data)
-        data = self._to_DataFrames(data, 'period')
+        data = self._to_DataFrames(data, "period")
         return data
 
-    def _parse_time_series(self, data, channel_scale_field,
-                           channel_name_field, **kwargs):
+    def _parse_time_series(
+        self, data, channel_scale_field, channel_name_field, **kwargs
+    ):
         """Parse time-series data for all loaded streams into a DataFrame.
 
         Optionally scales values and sets channel names according to channel
@@ -478,27 +508,34 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_series(data)
-        data = self._to_DataFrames(data, 'sample',
-                                   col_index_name='channel')
+        data = self._to_DataFrames(data, "sample", col_index_name="channel")
 
         if channel_scale_field:
-            scalings = self.channel_scalings(
-                channel_scale_field=channel_scale_field)
+            scalings = self.channel_scalings(channel_scale_field=channel_scale_field)
             if scalings:
-                data = {stream_id: ts * scalings[stream_id][channel_scale_field]
-                        if (stream_id in scalings
-                            and not (scalings[stream_id] == 1).all().item())
-                        else ts
-                        for stream_id, ts in data.items()}
+                data = {
+                    stream_id: ts * scalings[stream_id][channel_scale_field]
+                    if (
+                        stream_id in scalings
+                        and not (scalings[stream_id] == 1).all().item()
+                    )
+                    else ts
+                    for stream_id, ts in data.items()
+                }
 
         if channel_name_field:
-            ch_labels = self.channel_metadata(cols=channel_name_field,
-                                              with_stream_id=True)
+            ch_labels = self.channel_metadata(
+                cols=channel_name_field, with_stream_id=True
+            )
             if ch_labels:
-                data = {stream_id: ts.rename(
-                    columns=ch_labels[stream_id].loc[:, channel_name_field])
-                        if stream_id in ch_labels else ts
-                        for stream_id, ts in data.items()}
+                data = {
+                    stream_id: ts.rename(
+                        columns=ch_labels[stream_id].loc[:, channel_name_field]
+                    )
+                    if stream_id in ch_labels
+                    else ts
+                    for stream_id, ts in data.items()
+                }
         return data
 
     def _parse_time_stamps(self, data, **kwargs):
@@ -514,18 +551,22 @@ class Xdf(RawXdf):
         items is equal to the number of streams.
         """
         data = super()._parse_time_stamps(data)
-        data = self._to_DataFrames(data,
-                                   'sample',
-                                   columns=['time_stamp'])
+        data = self._to_DataFrames(data, "sample", columns=["time_stamp"])
         return data
 
-    def _get_stream_data(self, *stream_ids, data, exclude=[], cols=None,
-                         ignore_missing_cols=False, with_stream_id=False):
+    def _get_stream_data(
+        self,
+        *stream_ids,
+        data,
+        exclude=[],
+        cols=None,
+        ignore_missing_cols=False,
+        with_stream_id=False,
+    ):
         if isinstance(data, dict):
-            data = super()._get_stream_data(*stream_ids,
-                                            data=data,
-                                            exclude=exclude,
-                                            with_stream_id=with_stream_id)
+            data = super()._get_stream_data(
+                *stream_ids, data=data, exclude=exclude, with_stream_id=with_stream_id
+            )
         elif isinstance(data, pd.DataFrame):
             if not isinstance(exclude, list):
                 exclude = [exclude]
@@ -537,7 +578,7 @@ class Xdf(RawXdf):
             elif len(exclude) > 0:
                 data = data.loc[~data.index.isin(exclude)]
         else:
-            raise ValueError('Data should be a dictionary or DataFrame')
+            raise ValueError("Data should be a dictionary or DataFrame")
         # Subset data columns.
         if data is not None and cols is not None:
             if not isinstance(cols, list):
@@ -545,9 +586,9 @@ class Xdf(RawXdf):
             if isinstance(data, dict):
                 subset = {}
                 for stream_id in data.keys():
-                    df_cols = self._check_columns(data[stream_id],
-                                                  cols,
-                                                  ignore_missing_cols)
+                    df_cols = self._check_columns(
+                        data[stream_id], cols, ignore_missing_cols
+                    )
                     if df_cols:
                         subset[stream_id] = data[stream_id].loc[:, df_cols]
                 data = subset
@@ -556,37 +597,35 @@ class Xdf(RawXdf):
                 data = data.loc[:, df_cols]
         return data
 
-    def _to_DataFrames(self, data, index_name, col_index_name=None,
-                       columns=None):
+    def _to_DataFrames(self, data, index_name, col_index_name=None, columns=None):
         # Map a dictionary of {stream-id: data} to a dictionary of
         # {stream-id: DataFrames}.
-        data = {stream_id: self._to_df(stream_id, d,
-                                       index_name,
-                                       col_index_name=col_index_name,
-                                       columns=columns)
-                for stream_id, d, in data.items()}
+        data = {
+            stream_id: self._to_df(
+                stream_id, d, index_name, col_index_name=col_index_name, columns=columns
+            )
+            for stream_id, d in data.items()
+        }
         return data
 
-    def _to_df(self, stream_id, data, index_name, col_index_name=None,
-               columns=None):
+    def _to_df(self, stream_id, data, index_name, col_index_name=None, columns=None):
         df = pd.DataFrame(data, columns=columns)
         df.index.set_names(index_name, inplace=True)
         if col_index_name:
             df.columns.set_names(col_index_name, inplace=True)
-        df.attrs.update({'load_params': self.load_params})
+        df.attrs.update({"load_params": self.load_params})
         return df
 
     def _remove_empty_streams(self, data):
         streams = {}
         empty = {}
         for stream_id, d in data.items():
-            if (d is None
-                or (isinstance(d, list)
-                    and len(d) == 0)
-                or (isinstance(d, dict)
-                    and all([len(x) == 0 for x in d.values()]))
-                or (isinstance(d, np.ndarray)
-                    and d.size == 0)):
+            if (
+                d is None
+                or (isinstance(d, list) and len(d) == 0)
+                or (isinstance(d, dict) and all([len(x) == 0 for x in d.values()]))
+                or (isinstance(d, np.ndarray) and d.size == 0)
+            ):
                 empty[stream_id] = d
             else:
                 streams[stream_id] = d
@@ -595,18 +634,20 @@ class Xdf(RawXdf):
     def _check_empty_streams(self, data, name):
         data, empty = self._remove_empty_streams(data)
         if empty and self.verbose:
-            print(f"""No {name} for streams: {' '.join(str(i)
-            for i in sorted(list(empty.keys())))}""")
+            print(
+                f"""No {name} for streams: {
+                    " ".join(str(i) for i in sorted(list(empty.keys())))
+                }"""
+            )
         if not data:
-            print(f'No {name} found!')
+            print(f"No {name} found!")
             return None
         return data
 
     def _check_columns(self, df, columns, ignore_missing):
         columns = self.remove_duplicates(columns)
-        valid_cols = [col for col in columns
-                      if col in df.columns]
+        valid_cols = [col for col in columns if col in df.columns]
         if not ignore_missing and len(valid_cols) != len(columns):
             invalid_cols = set(columns).difference(df.columns)
-            raise KeyError(f'Invalid columns: {invalid_cols}')
+            raise KeyError(f"Invalid columns: {invalid_cols}")
         return valid_cols

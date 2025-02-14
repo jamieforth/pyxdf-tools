@@ -134,3 +134,34 @@ xdf.time_stamps()     # Accepts optional stream IDs
 | 6      | 80869.5                        | 80869.5                        |
 | 7      | 80870.5                        | 80870.5                        |
 | 8      | 80871.5                        | 80871.5                        |
+
+
+### Stream data MNE `RawArray`s
+
+```
+# Return stream data as an MNE RawArray.
+raw = xdf.raw_mne(1)     # Accepts optional stream IDs
+```
+
+```
+: Creating RawArray with float64 data, n_channels=2, n_times=9
+:     Range : 0 ... 8 =      0.000 ...     8.000 secs
+: Ready.
+: []
+```
+
+```
+# Multiple streams are returned as a list of RawArrays.
+raws = xdf.raw_mne()     # Default return all loaded streams.
+```
+
+```
+: Creating RawArray with float64 data, n_channels=2, n_times=9
+:     Range : 0 ... 8 =      0.000 ...     8.000 secs
+: Ready.
+: []
+: Creating RawArray with float64 data, n_channels=2, n_times=9
+:     Range : 0 ... 8 =      0.000 ...     8.000 secs
+: Ready.
+: []
+```

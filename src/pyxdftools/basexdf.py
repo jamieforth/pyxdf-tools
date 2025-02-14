@@ -47,8 +47,7 @@ class BaseXdf:
 
         See pyxdf.match_streaminfos for matching options.
         """
-        return pyxdf.match_streaminfos(BaseXdf.resolve_streams(self),
-                                       parameters)
+        return pyxdf.match_streaminfos(BaseXdf.resolve_streams(self), parameters)
 
     def remove_duplicates(self, values):
         """Remove duplicate values from a list preserving order."""
@@ -56,12 +55,10 @@ class BaseXdf:
         if len(unique) == len(values):
             unique = values
         else:
-            unique = [v for v in values
-                      if values.count(v) == 1]
-            duplicates = set([v for v in values
-                              if values.count(v) > 1])
+            unique = [v for v in values if values.count(v) == 1]
+            duplicates = set([v for v in values if values.count(v) > 1])
             if self.verbose:
-                warn(f'Duplicate values: {duplicates}.')
+                warn(f"Duplicate values: {duplicates}.")
         return unique
 
     # Abstract methods.
@@ -126,5 +123,5 @@ class BaseXdf:
 
     def __available_stream_ids(self):
         streams = self.__resolve_streams()
-        stream_ids = sorted([stream['stream_id'] for stream in streams])
+        stream_ids = sorted([stream["stream_id"] for stream in streams])
         return stream_ids

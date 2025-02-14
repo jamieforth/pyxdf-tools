@@ -9,8 +9,12 @@ import scipy
 
 from .decorators import XdfDecorators
 from .basexdf import BaseXdf
-from .errors import (NoLoadableStreamsError, XdfAlreadyLoadedError,
-                     XdfNotLoadedError, XdfStreamLoadError)
+from .errors import (
+    NoLoadableStreamsError,
+    XdfAlreadyLoadedError,
+    XdfNotLoadedError,
+    XdfStreamLoadError,
+)
 
 
 class RawXdf(BaseXdf, Sequence):
@@ -105,8 +109,9 @@ class RawXdf(BaseXdf, Sequence):
         return self._header
 
     @XdfDecorators.loaded
-    def metadata(self, *stream_ids, exclude=[], with_stream_id=False,
-                 desc=False, flatten=False):
+    def metadata(
+        self, *stream_ids, exclude=[], with_stream_id=False, desc=False, flatten=False
+    ):
         """Return raw stream metadata.
 
         Select data for stream_ids or default all loaded streams.
@@ -125,9 +130,10 @@ class RawXdf(BaseXdf, Sequence):
             with_stream_id=with_stream_id,
         )
         if desc:
-            data = {stream_id: d | self.desc(stream_id)
-                    if self.desc(stream_id) else d
-                    for stream_id, d in data.items()}
+            data = {
+                stream_id: d | self.desc(stream_id) if self.desc(stream_id) else d
+                for stream_id, d in data.items()
+            }
         if flatten:
             data = self.__flatten(data)
         return data
@@ -276,17 +282,16 @@ class RawXdf(BaseXdf, Sequence):
         where number of items is equal to the number of streams. Single
         streams are returned as is unless with_stream_id=True.
         """
-        time_stamps = self.time_stamps(*stream_ids,
-                                       exclude=exclude,
-                                       with_stream_id=True)
-        time_series = self.time_series(*stream_ids,
-                                       exclude=exclude,
-                                       with_stream_id=True)
+        time_stamps = self.time_stamps(
+            *stream_ids, exclude=exclude, with_stream_id=True
+        )
+        time_series = self.time_series(
+            *stream_ids, exclude=exclude, with_stream_id=True
+        )
 
         data = {
-            stream_id: {'time_stamps': t, 'time_series': ts}
-            for ((stream_id, t), ts)
-            in zip(time_stamps.items(), time_series.values())
+            stream_id: {"time_stamps": t, "time_series": ts}
+            for ((stream_id, t), ts) in zip(time_stamps.items(), time_series.values())
         }
 
         return data
@@ -326,13 +331,11 @@ class RawXdf(BaseXdf, Sequence):
         end_times = []
         n_total_chans = 0
         for stream_id, stream in self.time_stamps(
-                *stream_ids,
-                exclude=exclude,
-                with_stream_id=True).items():
+            *stream_ids, exclude=exclude, with_stream_id=True
+        ).items():
             start_times.append(stream[0])
             end_times.append(stream[-1])
-            n_total_chans += int(self.metadata(
-                stream_id)['channel_count'])
+            n_total_chans += int(self.metadata(stream_id)["channel_count"])
         first_time = min(start_times)
         last_time = max(end_times)
 
@@ -341,9 +344,8 @@ class RawXdf(BaseXdf, Sequence):
 
         col_start = 0
         for stream_id, stream in self.time_stamps(
-                *stream_ids,
-                exclude=exclude,
-                with_stream_id=True).items():
+            *stream_ids, exclude=exclude, with_stream_id=True
+        ).items():
             start_time = stream[0]
             end_time = stream[-1]
             len_new = int(np.ceil((end_time - start_time) * fs_new))
@@ -351,9 +353,7 @@ class RawXdf(BaseXdf, Sequence):
             x_old = self.time_series(stream_id, exclude=exclude)
             x_new = scipy.signal.resample(x_old, len_new, axis=0)
 
-            row_start = int(
-                np.floor((stream[0] - first_time) * fs_new)
-            )
+            row_start = int(np.floor((stream[0] - first_time) * fs_new))
             row_end = row_start + x_new.shape[0]
             col_end = col_start + x_new.shape[1]
             all_time_series[row_start:row_end, col_start:col_end] = x_new
@@ -369,44 +369,45 @@ class RawXdf(BaseXdf, Sequence):
             raise XdfAlreadyLoadedError
 
         # Separate kwargs.
-        xdf_kwargs = {k: kwargs[k] for k in
-                      kwargs.keys() & pyxdf.load_xdf.__kwdefaults__.keys()}
-        parse_kwargs = {k: kwargs[k] for k in
-                        kwargs.keys() - pyxdf.load_xdf.__kwdefaults__.keys()}
+        xdf_kwargs = {
+            k: kwargs[k] for k in kwargs.keys() & pyxdf.load_xdf.__kwdefaults__.keys()
+        }
+        parse_kwargs = {
+            k: kwargs[k] for k in kwargs.keys() - pyxdf.load_xdf.__kwdefaults__.keys()
+        }
 
-        if 'verbose' not in xdf_kwargs:
-            xdf_kwargs['verbose'] = self.verbose
+        if "verbose" not in xdf_kwargs:
+            xdf_kwargs["verbose"] = self.verbose
 
         if not select_streams:
             select_streams = None
 
         try:
-            streams, header = pyxdf.load_xdf(self.filename, select_streams,
-                                             **xdf_kwargs)
+            streams, header = pyxdf.load_xdf(
+                self.filename, select_streams, **xdf_kwargs
+            )
         except np.linalg.LinAlgError:
-            loadable_streams = self._find_loadable_streams(
-                select_streams, **xdf_kwargs)
+            loadable_streams = self._find_loadable_streams(select_streams, **xdf_kwargs)
             if loadable_streams:
-                streams, header = pyxdf.load_xdf(self.filename,
-                                                 loadable_streams,
-                                                 **xdf_kwargs)
+                streams, header = pyxdf.load_xdf(
+                    self.filename, loadable_streams, **xdf_kwargs
+                )
             else:
                 raise NoLoadableStreamsError(select_streams)
 
         # Store stream data as a dictionary sorted by stream-id.
         streams.sort(key=self.__get_stream_id)
-        stream_ids = [self.__get_stream_id(stream)
-                      for stream in streams]
+        stream_ids = [self.__get_stream_id(stream) for stream in streams]
         streams = dict(zip(stream_ids, streams))
 
         # Initialise class attributes.
         self._loaded_stream_ids = stream_ids
         self._loaded = True
-        self._load_params = {k: v
-                             for (k, v) in xdf_kwargs.items()
-                             if k not in ['verbose']}
+        self._load_params = {
+            k: v for (k, v) in xdf_kwargs.items() if k not in ["verbose"]
+        }
         if select_streams is not None:
-            self._load_params['select_streams'] = select_streams
+            self._load_params["select_streams"] = select_streams
 
         # Parse XDF into separate structures.
         self._header = self._parse_header(header, **parse_kwargs)
@@ -414,11 +415,9 @@ class RawXdf(BaseXdf, Sequence):
         self._desc = self._parse_desc(streams, **parse_kwargs)
         self._segments = self._parse_segments(streams, **parse_kwargs)
         self._clock_segments = self._parse_clock_segments(streams, **parse_kwargs)
-        self._channel_metadata = self._parse_channel_metadata(streams,
-                                                              **parse_kwargs)
+        self._channel_metadata = self._parse_channel_metadata(streams, **parse_kwargs)
         self._footer = self._parse_footer(streams, **parse_kwargs)
-        self._clock_offsets = self._parse_clock_offsets(streams,
-                                                        **parse_kwargs)
+        self._clock_offsets = self._parse_clock_offsets(streams, **parse_kwargs)
         self._time_series = self._parse_time_series(streams, **parse_kwargs)
         self._time_stamps = self._parse_time_stamps(streams, **parse_kwargs)
         return self
@@ -451,28 +450,26 @@ class RawXdf(BaseXdf, Sequence):
     @XdfDecorators.parse
     def _parse_header(self, data, **kwargs):
         # Remove unnecessary list objects.
-        header = self.__pop_singleton_lists(data['info'])
+        header = self.__pop_singleton_lists(data["info"])
         return header
 
     @XdfDecorators.parse
-    def _parse_metadata(self, data, flatten=False, pop_singleton_lists=True,
-                        **kwargs):
+    def _parse_metadata(self, data, flatten=False, pop_singleton_lists=True, **kwargs):
         metadata = self.__collect_stream_data(
             data=data,
-            data_path=['info'],
-            exclude=['desc', 'segments', 'clock_segments'],
+            data_path=["info"],
+            exclude=["desc", "segments", "clock_segments"],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
         )
         return metadata
 
     @XdfDecorators.parse
-    def _parse_desc(self, data, flatten=False, pop_singleton_lists=True,
-                    **kwargs):
+    def _parse_desc(self, data, flatten=False, pop_singleton_lists=True, **kwargs):
         desc = self.__collect_stream_data(
             data=data,
-            data_path=['info', 'desc'],
-            exclude=['channels'],
+            data_path=["info", "desc"],
+            exclude=["channels"],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
             allow_none=True,
@@ -483,7 +480,7 @@ class RawXdf(BaseXdf, Sequence):
     def _parse_segments(self, data, **kwargs):
         segments = self.__collect_stream_data(
             data=data,
-            data_path=['info', 'segments'],
+            data_path=["info", "segments"],
             allow_none=True,
         )
         return segments
@@ -492,30 +489,28 @@ class RawXdf(BaseXdf, Sequence):
     def _parse_clock_segments(self, data, **kwargs):
         segments = self.__collect_stream_data(
             data=data,
-            data_path=['info', 'clock_segments'],
+            data_path=["info", "clock_segments"],
             allow_none=True,
         )
         return segments
 
     @XdfDecorators.parse
-    def _parse_channel_metadata(self, data, pop_singleton_lists=True,
-                                **kwargs):
+    def _parse_channel_metadata(self, data, pop_singleton_lists=True, **kwargs):
         # Extract channel metadata from stream metadata.
         ch_metadata = self.__collect_stream_data(
             data=data,
-            data_path=['info', 'desc', 'channels', 'channel'],
+            data_path=["info", "desc", "channels", "channel"],
             pop_singleton_lists=pop_singleton_lists,
             allow_none=True,
         )
         return ch_metadata
 
     @XdfDecorators.parse
-    def _parse_footer(self, data, flatten=False, pop_singleton_lists=True,
-                      **kwargs):
+    def _parse_footer(self, data, flatten=False, pop_singleton_lists=True, **kwargs):
         footer = self.__collect_stream_data(
             data=data,
-            data_path=['footer', 'info'],
-            exclude=['clock_offsets'],
+            data_path=["footer", "info"],
+            exclude=["clock_offsets"],
             flatten=flatten,
             pop_singleton_lists=pop_singleton_lists,
             allow_none=True,
@@ -527,17 +522,15 @@ class RawXdf(BaseXdf, Sequence):
         # Extract clock offsets.
         clock_times = self.__collect_stream_data(
             data=data,
-            data_path=['clock_times'],
+            data_path=["clock_times"],
         )
         clock_values = self.__collect_stream_data(
             data=data,
-            data_path=['clock_values'],
+            data_path=["clock_values"],
         )
         clock_offsets = {
-            stream_id: {
-                'time': times,
-                'value': clock_values[stream_id]
-            } for stream_id, times in clock_times.items()
+            stream_id: {"time": times, "value": clock_values[stream_id]}
+            for stream_id, times in clock_times.items()
         }
         return clock_offsets
 
@@ -546,7 +539,7 @@ class RawXdf(BaseXdf, Sequence):
         # Extract time series data from stream data, e.g. EEG.
         time_series = self.__collect_stream_data(
             data=data,
-            data_path='time_series',
+            data_path="time_series",
         )
         return time_series
 
@@ -556,12 +549,11 @@ class RawXdf(BaseXdf, Sequence):
         # corresponding to EEG samples.
         time_stamps = self.__collect_stream_data(
             data=data,
-            data_path='time_stamps',
+            data_path="time_stamps",
         )
         return time_stamps
 
-    def _get_stream_data(self, *stream_ids, data, with_stream_id,
-                         exclude=[]):
+    def _get_stream_data(self, *stream_ids, data, with_stream_id, exclude=[]):
         if not isinstance(exclude, list):
             exclude = [exclude]
 
@@ -573,9 +565,11 @@ class RawXdf(BaseXdf, Sequence):
                 try:
                     # Subset of loaded streams based on exclude.
                     self._assert_stream_ids(*exclude, data=data)
-                    data = {stream_id: data
-                            for stream_id, data in data.items()
-                            if stream_id not in exclude}
+                    data = {
+                        stream_id: data
+                        for stream_id, data in data.items()
+                        if stream_id not in exclude
+                    }
                 except KeyError as exc:
                     print(exc)
                     return None
@@ -585,9 +579,11 @@ class RawXdf(BaseXdf, Sequence):
                 # requested streams.
                 self._assert_stream_ids(*stream_ids, data=data)
                 self._assert_stream_ids(*exclude, data=data)
-                data = {stream_id: data[stream_id]
-                        for stream_id in stream_ids
-                        if stream_id not in set(exclude)}
+                data = {
+                    stream_id: data[stream_id]
+                    for stream_id in stream_ids
+                    if stream_id not in set(exclude)
+                }
             except KeyError as exc:
                 print(exc)
                 return None
@@ -604,17 +600,23 @@ class RawXdf(BaseXdf, Sequence):
         valid_ids = set(unique_ids).intersection(data.keys())
         if len(valid_ids) != len(unique_ids):
             invalid_ids = list(valid_ids.symmetric_difference(stream_ids))
-            raise KeyError(f'Invalid stream IDs: {invalid_ids}')
+            raise KeyError(f"Invalid stream IDs: {invalid_ids}")
 
     # Name-mangled private methods to be used only by this class.
 
     def __get_stream_id(self, stream):
         # Get ID from stream data.
-        return self.__find_data_at_path(stream, ['info', 'stream_id'])
+        return self.__find_data_at_path(stream, ["info", "stream_id"])
 
-    def __collect_stream_data(self, data, data_path, exclude=None,
-                              pop_singleton_lists=False, flatten=False,
-                              allow_none=False):
+    def __collect_stream_data(
+        self,
+        data,
+        data_path,
+        exclude=None,
+        pop_singleton_lists=False,
+        flatten=False,
+        allow_none=False,
+    ):
         """Extract data from nested stream dictionaries at the data_path.
 
         Stream data is always returned as a dictionary {stream_id: data}
@@ -625,13 +627,14 @@ class RawXdf(BaseXdf, Sequence):
         """
         if not isinstance(data_path, list):
             data_path = [data_path]
-        data = {stream_id:
-                self.__find_data_at_path(
-                    stream,
-                    data_path,
-                    allow_none=allow_none,
-                )
-                for stream_id, stream in data.items()}
+        data = {
+            stream_id: self.__find_data_at_path(
+                stream,
+                data_path,
+                allow_none=allow_none,
+            )
+            for stream_id, stream in data.items()
+        }
         if exclude:
             data = self.__filter_stream_data(data, exclude)
         if flatten:
@@ -647,10 +650,9 @@ class RawXdf(BaseXdf, Sequence):
             if data and key in data.keys():
                 data = data[key]
                 if (
-                        isinstance(data, list)
-                        and len(data) == 1
-                        and (isinstance(data[0], dict)
-                             or data[0] is None)
+                    isinstance(data, list)
+                    and len(data) == 1
+                    and (isinstance(data[0], dict) or data[0] is None)
                 ):
                     data = data[0]
             else:
@@ -659,8 +661,8 @@ class RawXdf(BaseXdf, Sequence):
                     return None
                 else:
                     raise KeyError(
-                        f'Stream {stream_id} does not contain key {key} '
-                        f'at path {data_path}'
+                        f"Stream {stream_id} does not contain key {key} "
+                        f"at path {data_path}"
                     )
         return data
 
@@ -670,8 +672,11 @@ class RawXdf(BaseXdf, Sequence):
             exclude = [exclude]
 
         if isinstance(data, dict):
-            return {k: self.__filter_stream_data(v, exclude)
-                    for k, v in data.items() if k not in exclude}
+            return {
+                k: self.__filter_stream_data(v, exclude)
+                for k, v in data.items()
+                if k not in exclude
+            }
         elif isinstance(data, list):
             return [self.__filter_stream_data(item, exclude) for item in data]
         else:
@@ -679,11 +684,9 @@ class RawXdf(BaseXdf, Sequence):
 
     def __pop_singleton_lists(self, data):
         if isinstance(data, dict):
-            return {k: self.__pop_singleton_lists(v)
-                    for k, v in data.items()}
+            return {k: self.__pop_singleton_lists(v) for k, v in data.items()}
         elif isinstance(data, list):
-            if len(data) == 1 and (isinstance(data[0], str)
-                                   or data[0] is None):
+            if len(data) == 1 and (isinstance(data[0], str) or data[0] is None):
                 return self.__pop_singleton_lists(data[0])
             else:
                 return [self.__pop_singleton_lists(item) for item in data]
@@ -691,8 +694,10 @@ class RawXdf(BaseXdf, Sequence):
             return data
 
     def __flatten(self, data):
-        data = {stream_id: self.__collect_leaf_data(stream)
-                for stream_id, stream in data.items()}
+        data = {
+            stream_id: self.__collect_leaf_data(stream)
+            for stream_id, stream in data.items()
+        }
         return data
 
     def __collect_leaf_data(self, data, leaf_data=None):
@@ -723,9 +728,9 @@ class RawXdf(BaseXdf, Sequence):
         dups = [k for k in dictionary.keys() if k.startswith(duplicate)]
         dups.sort(reverse=True)
         last_dup = dups[0]
-        last_dup_split = last_dup.split('_')
+        last_dup_split = last_dup.split("_")
         if last_dup_split[-1].isdigit():
             next_id = int(last_dup_split[-1]) + 1
-            return f'{duplicate}_{next_id}'
+            return f"{duplicate}_{next_id}"
         else:
-            return f'{duplicate}_1'
+            return f"{duplicate}_1"
